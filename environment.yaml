@@ -1,0 +1,11 @@
+name: esp_env
+prefix: ${CONDA_BASE}/envs/esp_env
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - h5py
+  - numpy
+  - pandas
+  - matplotlib
+  - scikit-image

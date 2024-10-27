@@ -1,0 +1,11 @@
+**/__pycache__
+**/.vscode
+**/*logs/
+**/*dataset*/
+**/*temp*/
+
+tar_exclude.txt
+
+!**/*.py
+!**/sample_plots/
+
