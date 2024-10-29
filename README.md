@@ -78,26 +78,128 @@ python3 create_dataset.py \
     - Useful if normalizing elsewhere or for unscaling the data later
 
 ### HDF5 Format Notes
-- Default HDF5 formatted dataset will contain records of all relevant simulation data
-  - Scalar groups: `['metadata', 'metrics']`, saved as HDF5 Attributes
-  - Array groups: `['masks, 'images']`, saved as HDF5 Datasets
-- Each group is flattened and saved, with the group name appended as a prefix to each data key
-  - e.g., `{'image': {'my_final_array': '...' }}` ⇾ `{'image_my_final_array': '...'}`
-- Can manually add/remove/view saved data in: `[electrostatic_simulation.py:run_electrostatic_simulation()]`
+- Default HDF5 formatted dataset will contain simulation records of all relevant simulation data
+  - Scalar groups: `['meta', 'metric']`, saved as HDF5 Attributes
+    - `metadata`: metadata from the simulation run (e.g., total iterations)
+    - `metric`: numerical data computed from the simulation output (e.g., total charge)
+  - Array groups: `['mask', 'image']`, saved as HDF5 Datasets
+      - `mask`: categorical masks for data generation (e.g., binary mask for conductive cells)
+      - `image`: 2D arrays containing computed numercial data (e.g., charge distribution)
+- Each simulation record is output to a HDF5 Group containing the above Groups
+    <details>   
+    <summary> Example Record Structure </summary> 
+
+    ```plaintext
+    GROUP "record_1" {
+      GROUP "image" {
+          DATASET "charge_distribution" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "electric_field_magnitude" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "electric_field_x" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "electric_field_y" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "final_potential_map" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "initial_potential_map" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "permittivity_map" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+      }
+      GROUP "mask" {
+          DATASET "conductive_material_map" {
+            DATATYPE  H5T_ENUM {
+                H5T_STD_I8LE;
+                "FALSE"            0;
+                "TRUE"             1;
+            }
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "material_category_map" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+          DATASET "material_id_map" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
+          }
+      }
+      GROUP "meta" {
+          ATTRIBUTE "converged" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SCALAR
+          }
+          ATTRIBUTE "image_size" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SCALAR
+          }
+          ATTRIBUTE "max_delta" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SCALAR
+          }
+          ATTRIBUTE "random_seed" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SCALAR
+          }
+          ATTRIBUTE "total_iterations" {
+            DATATYPE  H5T_STD_I64LE
+            DATASPACE  SCALAR
+          }
+      }
+      GROUP "metric" {
+          ATTRIBUTE "electric_flux" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SCALAR
+          }
+          ATTRIBUTE "total_charge" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SCALAR
+          }
+          ATTRIBUTE "total_energy" {
+            DATATYPE  H5T_IEEE_F64LE
+            DATASPACE  SCALAR
+          }
+      }
+    }
+    ```
+
+    <details> 
+- Can manually add/remove saved data in: `[electrostatic_simulation.py:run_electrostatic_simulation()]`
   - Or just filter what you need after reading record in with: `[utilities.py:read_from_hdf5()]`
 - HDF5 data files are saved in: `path/to/<output_folder_name>/data`
 - Global min/max normalization values are saved to: `path/to/<output_folder_name>/global_min_max_values_hdf5.json`
+  - Only `'images'` and `'metrics'` groups are normalized, `masks` are catagorical 
 
 ### SimVP Format Notes
 - Optional SimVP formatted dataset only includes the minimal input/output images
 - Specifically formatted for this fork of SimVP: https://github.com/drewg02/OpenSTL.git
 - Each simulation frame is saved to folder: `<unique_hash>_<datatype_name>_<#id>`
   - `<unique_hash>` is a hash of the input conditions
-  - `<datatype_name>` is the simulation data name: `espfixed` if [--enable-fixed-charges] is set, otherwise `espfree`
+  - `<datatype_name>` is the simulation data name: `electrostatic`
   - `<#id>` is a numeric ID for the simulation outputs from 0 to N (not based on seed #)
 - Each folder contains 2 NumPy files:
-  - `<unique_hash>_<datatype_name>_<#id>/0.npy`: Initial condition images saved as (Channels x Width X Height)
-  - `<unique_hash>_<datatype_name>_<#id>/1.npy`: Final output image saved as (1 x Width X Height)
+  - `<unique_hash>_<datatype_name>_<#id>/0.npy`: Input images saved as (Channels x Width X Height)
+    - Initial condition images (3 Channels): *Initial Potential Map*, *Relative Permittivity*, *Charge Distribution*
+  - `<unique_hash>_<datatype_name>_<#id>/1.npy`: Output image saved as (1 x Width X Height)
+    - Final state image (1 Channels): `Final Potential Map`
+- Can manually add/remove any images in `[utilities.py:normalize_hdf5_to_numpy()]` 
+  - Any array from the `'image'` group can be added as an input or output 
+  - If SimVP supports encoding categorical data, you can add arrays from `mask`
 - Global min/max normalization values are saved to: `path/to/<output_folder_name>/global_min_max_values_simvp.json`
 
 ### Simulation Solver Notes:
