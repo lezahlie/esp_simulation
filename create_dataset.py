@@ -6,12 +6,22 @@ from electrostatic_simulation import generate_electrostatic_maps
 from plot_samples import plot_simulation_samples
 
 # processes function gets shape maps and saves to a file in chunks
-def process_image_maps(data_file, seed_range, seed_step, 
-                        grid_length, material_cell_ratio, conductive_material_ratio, 
-                        enable_fixed_charges, enable_absolute_permittivity, 
-                        max_iterations, convergence_tolerance, 
-                        plot_path, simvp_format, 
-                        shared_data, shared_lock):
+def process_image_maps(data_file, 
+                        seed_range, 
+                        seed_step, 
+                        grid_length,
+                        conductive_cell_ratio, 
+                        conductive_cell_prob, 
+                        conductive_material_count,
+                        conductive_material_range,
+                        enable_fixed_charges, 
+                        enable_absolute_permittivity, 
+                        max_iterations, 
+                        convergence_tolerance, 
+                        plot_path, 
+                        simvp_format, 
+                        shared_data, 
+                        shared_lock):
 
     cp_pid = current_process().pid
     remove_if_exists(data_file)
@@ -20,8 +30,10 @@ def process_image_maps(data_file, seed_range, seed_step,
         sim_results = generate_electrostatic_maps(min_seed=sr[0], 
                                                     max_seed=sr[1], 
                                                     grid_length=grid_length, 
-                                                    material_cell_ratio=material_cell_ratio, 
-                                                    conductive_material_ratio=conductive_material_ratio, 
+                                                    conductive_cell_ratio=conductive_cell_ratio, 
+                                                    conductive_cell_prob=conductive_cell_prob, 
+                                                    conductive_material_count=conductive_material_count,
+                                                    conductive_material_range=conductive_material_range,
                                                     enable_fixed_charges=enable_fixed_charges, 
                                                     enable_absolute_permittivity=enable_absolute_permittivity, 
                                                     max_iterations=max_iterations,
@@ -36,7 +48,7 @@ def process_image_maps(data_file, seed_range, seed_step,
 
         # save 1 sample plot if enabled
         if plot_path is not None:
-            sample_dicts = read_from_hdf5(data_file, sample_size=1)
+            sample_dicts = read_from_hdf5(data_file, sample_size=10)
             plot_simulation_samples(sample_dicts, plot_path, enable_fixed_charges, simvp_format)
 
 
@@ -50,7 +62,7 @@ def gather_task_results(task_data_paths, final_file, seed_chunk):
 
 
 # creates and runs each process
-def run_processes(task_data_paths, seed_range_per_task, default_args, simvp_format:bool=False):
+def run_processes(task_data_paths, seed_range_per_task, default_args):
     # shared data is to track global min and max for normalizing data 
     # this is useful for normalizing now or in the dataloader later
     manager = Manager()
@@ -81,16 +93,19 @@ def main():
     max_seed = args.max_seed
     seed_step = args.seed_step
     image_size = args.image_size
+    max_iterations = args.max_iterations
     normalize = args.normalize
     simvp_format = args.simvp_format
     convergence_tolerance = args.convergence_tolerance
     enable_fixed_charges = args.enable_fixed_charges
     enable_absolute_permittivity = args.enable_absolute_permittivity
-    material_cell_ratio = args.material_cell_ratio
-    conductive_material_ratio = args.conductive_material_ratio
-    max_iterations = args.max_iterations
-    total_seeds = (max_seed-min_seed+1)
 
+    conductive_cell_ratio = getattr(args, 'conductive_cell_ratio', None)
+    conductive_cell_prob = getattr(args, 'conductive_cell_prob', None)
+    conductive_material_count = getattr(args, 'conductive_material_count', None)
+    conductive_material_range = getattr(args, 'conductive_material_range', None)
+
+    total_seeds = (max_seed-min_seed+1)
     # friendly names
     solver_name = 'laplace' if enable_fixed_charges else 'poisson'
     datatype_name = "electrostatic"
@@ -118,8 +133,10 @@ def main():
     default_args = [
                     seed_step, 
                     image_size, 
-                    material_cell_ratio, 
-                    conductive_material_ratio, 
+                    conductive_cell_ratio, 
+                    conductive_cell_prob, 
+                    conductive_material_count,
+                    conductive_material_range,
                     enable_fixed_charges, 
                     enable_absolute_permittivity, 
                     max_iterations,
@@ -129,6 +146,7 @@ def main():
                 ]
     
     global_min_max = run_processes(task_data_paths, seed_range_per_task, default_args)
+
 
     # combine process results
     if req_cores > 1:
@@ -151,6 +169,8 @@ def main():
             remove_if_exists(final_file_path)
         save_to_json(path.join(output_folder_path, "global_min_max_values_hdf5.json"), global_min_max)
 
-
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.error(e)

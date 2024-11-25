@@ -15,6 +15,34 @@ import warnings
 import scipy.ndimage as ndimg
 import numpy as np
 import hashlib
+from collections import deque
+
+def dynamic_precision_round(value):
+    factor = 10 ** 2
+    rounded_value = np.ceil(value * factor) / factor
+    return rounded_value
+
+
+def compute_nonboundnary_cells(image_size):
+    return (image_size - 2) ** 2
+
+
+def compute_minimum_ratios(image_size, conductive_material_ratio):
+    total_internal_cells = (image_size - 2) ** 2
+    material_cell_ratio=1.0
+
+    material_cell_count = int(material_cell_ratio * total_internal_cells)
+    
+    # ensures at least 1 material is insolation
+    max_conductive_ratio = dynamic_precision_round((material_cell_count - 1) / material_cell_count)
+    effective_conductive_ratio = min(conductive_material_ratio, max_conductive_ratio)
+
+    # ensures at least 1 material is conductive
+    conductor_cell_count = max(1, int(effective_conductive_ratio * material_cell_count))
+    min_conductive_ratio = max(effective_conductive_ratio, dynamic_precision_round(conductor_cell_count / material_cell_count))
+
+    return (min_conductive_ratio, max_conductive_ratio)
+
 
 
 # creates a folder path if it doesn't exist

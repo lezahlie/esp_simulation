@@ -1,11 +1,14 @@
 import argparse as ap
 import utilities as util
+from electrostatic_mappers import conductive_indices
 
 executable_groups = {
     "electrostatic_simulation.py": ["image"],
     "create_dataset.py": ["data", "image", "multiprocess"]
 }
 
+def parse_tuple(value):
+    return tuple(map(int, value.strip("()").split(",")))
 
 def add_multiprocess_group(parser, file_name):
     group = parser.add_argument_group('multi-process options')
@@ -29,26 +32,53 @@ def add_image_group(parser):
                     help="Start seed for generating images from MIN_SEED to MAX_SEED | default: 1")
     group.add_argument('-b', '--max-seed', dest='max_seed', type=int, default=500, 
                     help="Ending seed for generating images from MIN_SEED to MAX_SEED | default: 100")
-    group.add_argument('-m', '--material-cell-ratio', dest='material_cell_ratio', type=float, default=1.0,
-                    help="Ratio of non border cells eligible for material placement | default: 1.0")
-    group.add_argument('-c', '--conductive-material-ratio', dest='conductive_material_ratio', type=float, default=0.25,
-                    help="Ratio of eligible material cells that should be conductive | default: 0.25")
+    
+    ccell_group = group.add_mutually_exclusive_group(required=True)
+    ccell_group.add_argument('-r', '--conductive-cell-ratio', dest='conductive_cell_ratio', type=float,
+                    help="Proportion of cells that should be conductive (Before cellular automata) | required")
+    ccell_group.add_argument('-p', '--conductive-cell-prob', dest='conductive_cell_ratio', type=float,
+                    help="Probability a cells will be conductive or not (Before cellular automata) | required")
+
+    ccount_group = group.add_mutually_exclusive_group(required=True)
+    ccount_group.add_argument('-j', '--conductive-material-range', dest='conductive_material_range', type=parse_tuple,
+                    help=f"Range to randomly pick a number of conductive materials; max range = {len(conductive_indices)} | required")
+    ccount_group.add_argument('-c', '--conductive-material-count', dest='conductive_material_count', type=int,
+                    help=f"Static count of total conductive materials; max count = {len(conductive_indices)} | required")
+    
     group.add_argument('-u', '--enable-absolute-permittivity', dest='enable_absolute_permittivity', action='store_true',
                     help="Enables converting material permittivity from relative to absolute | default: Off")
     group.add_argument('-l', '--enable-fixed-charges', dest='enable_fixed_charges', action='store_true',
                 help="Enables solving for fixed charges, charges are free by default | default: Off")
-    group.add_argument('-z', '--max-iterations', dest='max_iterations', type=int, default=2000,
-                    help="Maximum allowed iterations to run electrostatic potential solvers | default: 2000")
+    group.add_argument('-z', '--max-iterations', dest='max_iterations', type=int, default=3000,
+                    help="Maximum allowed iterations to run electrostatic potential solvers | default: 3000")
     group.add_argument('-e', '--convergence-tolerance', dest='convergence_tolerance', type=float, default=1e-6,
                     help="Tolerance for convergence; reached when the maximum change between iterations falls below this value | default: 1E-6")
 
+
 def check_image_args(args):
-    if not (5 < args.image_size < 1025):
+    if not (4 < args.image_size < 1025):
         raise ValueError("IMAGE_SIZE must be a INT between [5, 1024]")
-    if not (0.5 <= args.material_cell_ratio <= 1.0):
-        raise ValueError(f"MATERIAL_CELL_RATIO must be a FLOAT between (0.5, 1.0)")
-    if not (0.2 < args.conductive_material_ratio <= 1.0):
-        raise ValueError("CONDUCTIVE_MATERIAL_RATIO must be a FLOAT between (0.25, 1.0).")
+    
+    if hasattr(args, 'conductive_material_ratio') and args.conductive_material_ratio is not None:
+        (min_cond_ratio, max_cond_ratio) = util.compute_minimum_ratios(args.image_size, args.conductive_material_ratio)
+        if not (min_cond_ratio <= args.conductive_material_ratio <= max_cond_ratio):
+            ratio_range_str = f'equal to ({min_cond_ratio})' if min_cond_ratio == max_cond_ratio else f"between ({min_cond_ratio}, {max_cond_ratio})"
+            raise ValueError(f"CONDUCTIVE_MATERIAL_RATIO must be a FLOAT {ratio_range_str}, enforcing at least 1 conductive material and 1 insolating material")
+
+    if hasattr(args, 'conductive_material_prob') and args.conductive_material_ratio is not None:
+        if not (0.0 <= args.conductive_material_prob <= 1.0):
+            raise ValueError(f"CONDUCTIVE_MATERIAL_PROB must be a FLOAT, between [0.0,1.00]")
+    
+    num_conductive = len(conductive_indices)
+    if hasattr(args, 'conductive_random_range') and args.conductive_random_range is not None:
+        minr, maxr = args.conductive_random_range
+        if not(0 < minr < maxr and minr < maxr < num_conductive):
+            raise ValueError(f"CONDUCTIVE_RANDOM_RANGE must be a TUPLE(INT, INT) with value between [1, {num_conductive }]")
+
+    if hasattr(args, 'conductive_static_count') and args.conductive_static_count is not None:
+        if not 0 < args.conductive_static_count <= num_conductive:
+            raise ValueError(f"CONDUCTIVE_STATIC_COUNT must be a INT between [1, {num_conductive}]")    
+
     if not (1 <= args.min_seed < args.max_seed):
         raise ValueError("MIN_SEED must be a INT between [1, MAX_SEED - 1]")
     if not (args.min_seed < args.max_seed):
@@ -72,7 +102,7 @@ def add_data_group(parser,  file_name):
     group.add_argument('-w', '--disable-normalization', dest='normalize',  action='store_false', 
                     help="Option to disable normalizing simulation outputs with a min max scaler | default: Off")
 
-    group.add_argument('-p', '--plot-samples', dest='plot_samples', action='store_true',
+    group.add_argument('-g', '--plot-samples', dest='plot_samples', action='store_true',
                     help="Option to save sample plots from electrostatic simulation | default: Off")
 
     group.add_argument('-v', '--simvp-format', dest='simvp_format', action='store_true',

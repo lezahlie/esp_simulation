@@ -19,37 +19,86 @@ conda activate esp_env
 
 ```bash
 python3 create_dataset.py \
-  --output-path "<path/to/dir>" \               # Ouput directory outside of project root
-  --output-folder "<output_folder_name>" \      # Output folder name
-  --min-seed 1 \                                # Min RNG seed 
-  --max-seed 1000 \                             # Max RNG seed 
-  --seed-step 100 \                             # Seeds each core should process at a time (saves memory)
-  --image-size 64 \                             # Size of one side of the grid image 
-  --material-cell-ratio 0.75 \                  # How many cells should have a material (non air)
-  --conductive-material-ratio 0.4 \             # How many materials should be conductors?
-  --max-iterations 5000 \                       # Increase/decrease depending on size and materials
-  --convergence-tolerance 1e-6 \                # Tolerance for determining when solution has converged
-  --ntasks 2 \                                  # Number of multiprocessing cores 
-  --simvp-format \                              # Option to save the dataset specifically formatted for SimVP
-  --plot-samples \                              # Plots random samples of simulation outputs (HDF5 option only)
-  --disable-normalization \                     # Prevented default behavior to normalize all computed images and scalars
-  --enable-fixed-charges  \                     # Charge distribution is fixed instead of free (less variation, different solver)
-  --enable-absolute-permittivity                # Alternative to using dielectric constants (uncommon, can ignore)
+  # 1. Output options
+  --output-path "<path/to/dir>" \         # Ouput directory outside of project root
+  --output-folder "<folder_name>" \       # Output folder name
+  --plot-samples \                        # Plots random samples of simulation outputs
+
+  # 2. Dataset creation options
+  --min-seed 1 \                          # Min RNG seed 
+  --max-seed 1000 \                       # Max RNG seed 
+  --seed-step 100 \                       # Seeds each core should process at a time (saves memory)
+  --ntasks 2 \                            # Number of multiprocessing cores, seeds are divided between core
+  
+  # 3. Dataset format options
+  --simvp-format \                        # Option to save the dataset specifically formatted for SimVP
+  --disable-normalization \               # Prevent default behavior to normalize all images and scalars 
+
+  # 4. Primary image generation options
+  --image-size 32 \                       # Size of one side of the grid image 
+  ## 4-A. Mutually Exclusive Options:
+  [--conductive-cell-ratio 0.5] \         # Proportion of cells that should be conductive (static)
+  [--conductive-cell-prob 0.5] \          # Probability a cell will be conductive or not (random)
+  ## 4-B. Mutually Exclusive Options:
+  [--conductive-material-range 1,12]  \   # Range to random select count of conductive material types
+  [--conductive-material-count 5]  \      # Count of conductive material types to add (static) 
+
+  # 5. Simulation behavior options
+  --max-iterations 2000 \                 # Increase/decrease depending on image size and observed simulation behavior
+  --convergence-tolerance 1e-6 \          # Tolerance for determining when solution has converged
+  --enable-fixed-charges  \               # Charges are fixed instead of free (less variation, different solver)
+  --enable-absolute-permittivity          # Alternative to using dielectric constants (uncommon, can ignore)
 ```
 
-### Example run with minimal options for HDF5 dataset
+### Example runs with minimal options for HDF5 dataset
 
 ```bash
+python3 create_dataset.py \
+  --min-seed=1 \                 
+  --max-seed=1000 \                    
+  --seed-step=100 \ 
+  --ntasks=2 \
+  --image-size=32 \ 
+  --conductive-cell-ratio=0.65 \ 
+  --conductive-material-count=5 \
+  --max-iterations=2500 \
+  --plot-samples 
+
+
+python3 create_dataset.py \
+  --min-seed=500 \                 
+  --max-seed=1500 \                    
+  --seed-step=100 \ 
+  --image-size=32 \ 
+  --conductive-cell-prob=0.5 \ 
+  --conductive-material-range=1,3 \
+  --max-iterations=2500 \
+  --ntasks=2 \
+  --plot-samples
+
+
 python3 create_dataset.py \
   --min-seed=100 \                 
   --max-seed=5100 \                    
   --seed-step=100 \ 
   --image-size=64 \ 
-  --material-cell-ratio=0.75 \
-  --conductive-material-ratio=0.25 \ 
+  --conductive-cell-prob=0.75 \ 
+  --conductive-material-count=1 \
   --max-iterations=5000 \
   --ntasks=2 \
   --plot-samples
+
+python3 create_dataset.py \
+  --min-seed=100 \                 
+  --max-seed=5100 \                    
+  --seed-step=100 \ 
+  --image-size=64 \ 
+  --conductive-cell-ratio=0.25 \ 
+  --conductive-material-range=1,10 \
+  --max-iterations=5000 \
+  --ntasks=2 \
+  --plot-samples
+
 ```
 
 ### Example run with minimal options for SimVP dataset
@@ -194,7 +243,7 @@ python3 create_dataset.py \
   - `<#id>` is a numeric ID for the simulation outputs from 0 to N (not based on seed #)
 - Each folder contains 2 NumPy files:
   - `<unique_hash>_<datatype_name>_<#id>/0.npy`: Input images saved as (Channels x Width X Height)
-    - Initial condition images (3 Channels): *Initial Potential Map*, *Relative Permittivity*, *Charge Distribution*
+    - Initial condition images (3 Channels): `Initial Potential Map`, `Relative Permittivity`, `Charge Distribution`
   - `<unique_hash>_<datatype_name>_<#id>/1.npy`: Output image saved as (1 x Width X Height)
     - Final state image (1 Channels): `Final Potential Map`
 - Can manually add/remove any images in `[utilities.py:normalize_hdf5_to_numpy()]` 
@@ -205,17 +254,42 @@ python3 create_dataset.py \
 ### Simulation Solver Notes:
 - The solver equations used depends on if charges are considered *free* or *fixed*
 - By default charges are considered *free*, meaning they affect the electrostatic potential over time
-  - Free charges provide variation in the output, but longer simulation times
+  - Free charges provide variation in the output, faster convergence, but longer simulation times
   - Solves with [Poisson's equation](https://en.wikipedia.org/wiki/Discrete_Poisson_equation) for a discretized 2D grid
   - Applies [Dirichlet boundary conditions](https://en.wikipedia.org/wiki/Dirichlet_boundary_condition), where boundaries are fixed to the permittivity of free-space
 - If `[--enable-fixed-charges]` is set, then charges are fixed, meaning electrostatic potential is constant
-  - Fixed charges have less variation in the output, but faster simulation times
+  - Fixed charges have less variation in the output, slower convergence, but faster simulation times overall
   - Solves with [Laplace's equation](https://en.wikipedia.org/wiki/Laplace%27s_equation#Electrostatics), which is derived from Poisson 
   - Applies [Neumann boundary conditions](https://en.wikipedia.org/wiki/Neumann_boundary_condition), where boundaries reflect the behavior of inner cells
 
+### Material Map Generation Notes:
+1. Initial conductive mask is created with options:
+  - `[--conductive-cell-ratio]`: Proportion of cells that should be conductive 
+    - Samples will have a consistent number of conductive cells
+    - Locations of conductive cells are randomized based on RNG seed
+  - `[--conductive-cell-prob]`: Probability a cell is conductive or not 
+    - Samples will have a variable number of conductive cells based on probability and RNG seed
+    - Locations of conductive cells determined by the probability and RNG seed
+2. Cellular automata + Connecting algorithm is applied to the initial conductive mask
+3. Conductive materials are added to the final conductive mask
+  - `[--conductive-material-count]`: Static count of conductor materials to add 
+    - Samples will have a consistent number of conductive material types
+  - `[--conductive-material-range]`: Range to randomly select count of conductor materials to add
+    - Samples will have a variable number of conductive material types
+  - Selected conductive materials are randomized based on RNG seed for both options
+4. Remaining non-border cells are filled randomly based on RNG seed with isolating materials
+5. The borders are set to `free space` to create an isolated environment to start with
+
+
+### Reproducibility Notes:
+- Total simulation samples is based on seed range:
+  - `[--min-seed]` and `[--max-seed]`
+- Each seed can be used to reproduce a simulation given the same arguments
+  - Input arguments are saved to a JSON file in case you need it
+
 
 #### Sample simulation result for free charges
-![Free Charges Sample Plot](sample_plots/electrostatic_poisson_32x32_1.png)
+![Free Charges Sample Plot](sample_plots/electrostatic_poisson_32x32_7.png)
 
 #### Sample simulation result for fixed charges
-![Fixed Charges Sample Plot](sample_plots/electrostatic_laplace_32x32_1.png)
+![Fixed Charges Sample Plot](sample_plots/electrostatic_laplace_32x32_7.png)

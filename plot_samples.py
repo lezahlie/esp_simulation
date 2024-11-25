@@ -71,7 +71,7 @@ def plot_image_map(ax, matrix, cbar_name, cmap='plasma', discrete=False, tick_la
     return ax
 
 
-def plot_image_maps(map_list, plot_title, plot_path, nrows=2):
+def plot_sample_images(map_list, plot_title, plot_path, nrows=2):
     ncols = len(map_list)//nrows
     fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*5, (nrows*4)+0.5))
     axs = axs.flatten()
@@ -82,7 +82,10 @@ def plot_image_maps(map_list, plot_title, plot_path, nrows=2):
         ax.set_xticks([])
         ax.set_yticks([])
 
-
+    for ax in axs.flat:
+        if not ax.has_data():
+            ax.axis('off')
+            
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(plot_title, y=0.975)
     plt.savefig(plot_path)
@@ -98,22 +101,22 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path_prefix:str, enabl
 
         if solver_images_only:
             map_list = [
-                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'magma', False, None),
-                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdBu_r', False, None),
+                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], '', False, None),
+                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', False, None),
                 (sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
                 (sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo', False, None)
             ]
         else:
             map_list = [
-                #(sample['mask_material_id_map'], "Material Id Map", "Id #", 'tab20_r', True, None),  
                 (sample['mask_material_category_map'], "Material Category Mask", "Category", 'brg', True, material_category_names),
-                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'magma', False, None),
-                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdBu_r', False, None),
-                (sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
+                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'plasma', False, None),
+                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', False, None),
+                #(sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
+                (sample['mask_material_id_map'], "Material Id Map", "Id #", 'tab20b', True, None),  
                 (sample['image_final_potential_map'], "Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
                 (sample['image_electric_field_magnitude'], "Electric Field Magnitude (Volts/meters)", "Field (V/m)", 'inferno', False, None)
             ]
-                
+
         final_state = 'stopped' if sample['meta_converged']==0 else 'converged'
         solver_name = 'laplace' if enable_fixed_charges else 'poisson'
         random_seed = sample['meta_random_seed']
@@ -122,5 +125,5 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path_prefix:str, enabl
         plot_title = f"Seed[{random_seed}]: {solver_name.title()} solver {final_state} with max_delta = {max_delta:g} after {total_iterations} iterations" 
 
         plot_path  = f"{plot_path_prefix}_{random_seed}.png"
-        plot_image_maps(map_list, plot_title, plot_path)
+        plot_sample_images(map_list, plot_title, plot_path)
         logger.info(f"Saved seed {random_seed} plot for solver {solver_name} to: {plot_path}")
