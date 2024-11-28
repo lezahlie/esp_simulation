@@ -4,26 +4,22 @@ from utilities import np, mtick, mcolor, plt, namedtuple
 from electrostatic_mappers import PERMITTIVITY_TYPE, material_category_names
 
 def determine_precision(cbar_ticks, default_precision=3):
-    tick_diffs = np.diff(cbar_ticks)
-    if len(tick_diffs) > 0:
-        min_diff = np.min(tick_diffs[tick_diffs > 0]) if np.any(tick_diffs > 0) else 1
-        relative_diff = min_diff / np.max(cbar_ticks)  
-        precision = max(default_precision, -int(np.floor(np.log10(relative_diff))))  # Base precision
-    else:
-        precision = default_precision 
+    if len(cbar_ticks) < 2:
+        return default_precision
     
-    while len(set(f"{tick:.{precision}g}" for tick in cbar_ticks)) < len(cbar_ticks):
-        precision += 1  
-    
-    return precision
+    tick_diffs = np.diff(sorted(cbar_ticks))
+    min_diff = np.min(tick_diffs[tick_diffs > 0]) if np.any(tick_diffs > 0) else 1
+    precision = max(default_precision, -int(np.floor(np.log10(min_diff))))
 
+    while len(set(f"{tick:.{precision}f}" for tick in cbar_ticks)) < len(cbar_ticks):
+        precision += 1
+    return precision
 
 def dynamic_tick_formatter(val, pos=None, precision=3):
     if val == 0:
         return "0"
     if val <= 1e-4 or val >= 1e4:
         return f'{val:.{precision}e}'
-    
     return f'{val:.{precision}f}'
 
 
@@ -34,8 +30,8 @@ def plot_image_map(ax, array, cbar_name, cmap_name='plasma', discrete=False, ext
         min_value, max_value = extrema_values 
     else:
         min_value, max_value = np.min(array), np.max(array)
+
     label_rotate=0
-    
 
     if discrete:
         if tick_labels is not None:
@@ -126,10 +122,11 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path_prefix:str, globa
             map_list = [
                 MapConfig(sample['mask_material_category_map'], "Material Category Mask", "Category", 'brg', None, True, material_category_names),
                 MapConfig(sample['mask_material_id_map'], "Material Id Map", "Id #", 'tab20b', None, True, None),
-                MapConfig(sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', extrema_values.get('initial_potential_map', None), False, None),
-                MapConfig(sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', extrema_values.get('charge_distribution', None), False, None),
                 MapConfig(sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'plasma', extrema_values.get('permittivity_map', None), False, None),
-                MapConfig(sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo', extrema_values.get('final_potential_map', None), False, None)
+                MapConfig(sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', extrema_values.get('charge_distribution', None), False, None),
+                #MapConfig(sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', extrema_values.get('initial_potential_map', None), False, None),
+                MapConfig(sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo', extrema_values.get('final_potential_map', None), False, None),
+                MapConfig(sample['image_electric_field_magnitude'], "Electric Field Magnitude (Volts/meters)", "Field (V/m)", 'inferno', extrema_values.get('electric_field_magnitude', None), False, None),
             ]
 
         final_state = 'stopped' if sample['meta_converged']==0 else 'converged'

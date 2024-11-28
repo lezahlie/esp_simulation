@@ -7,10 +7,10 @@ root_path=$(dirname "$script_path")
 program_name=process_dataset
 
 prog_args=(
-    "--dataset-path=hdf5_test_dataset/electrostatic_poisson_32x32_1-1000.hdf5"  
+    "--dataset-path=hdf5_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5"  
     "--output-folder=simvp_dataset_example"   
     "--simvp-format"
-    "--sample-plots=10"
+    "--sample-plots=25"
     #"--output-path=path/to/dir"  
     #"--disable-normalization" 
     "--debug"

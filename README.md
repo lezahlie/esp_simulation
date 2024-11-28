@@ -336,8 +336,13 @@ python3 process_dataset.py \
 - Each seed can be used to reproduce a simulation given the same arguments
   - Input arguments are saved to a JSON file saved to: `path/to/<output_folder_name>/arguments_<original_datafile_name>.json`
 
-#### Sample simulation result for free charges
-![Free Charges Sample Plot](sample_plots/electrostatic_poisson_32x32_7.png)
+### Sample simulation results for free charges
+![Free Charges Sample Plot 1](sample_plots/electrostatic_poisson_32x32_48.png)
+![Free Charges Sample Plot 2](sample_plots/electrostatic_poisson_32x32_67.png)
+![Free Charges Sample Plot 3](sample_plots/electrostatic_poisson_32x32_69.png)
 
-#### Sample simulation result for fixed charges
-![Fixed Charges Sample Plot](sample_plots/electrostatic_laplace_32x32_7.png)
+### Sample simulation results for fixed charges
+![Fixed Charges Sample Plot 1](sample_plots/electrostatic_laplace_32x32_48.png)
+![Fixed Charges Sample Plot 2](sample_plots/electrostatic_laplace_32x32_67.png)
+![Fixed Charges Sample Plot 3](sample_plots/electrostatic_laplace_32x32_69.png)
+*Note: Due to the color map boundaries being set to the global min/max values across a set of simulations, images that have tiny differences between cells will appear as one color. Hence, the Final Potential Maps shown above.*
