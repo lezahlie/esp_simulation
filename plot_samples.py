@@ -27,10 +27,10 @@ def dynamic_tick_formatter(val, pos=None, precision=3):
     return f'{val:.{precision}f}'
 
 
-def plot_image_map(ax, matrix, cbar_name, cmap='plasma', discrete=False, tick_labels=None, threshold=1e3):
-    min_value = np.min(matrix)
-    max_value = np.max(matrix)
+def plot_image_map(ax, matrix, cbar_name, cmap='plasma', discrete=False, extrema_values=None, tick_labels=None, threshold=1e3):
+    min_value, max_value = extrema_values if isinstance(extrema_values, tuple) else (np.min(matrix), np.max(matrix))
     label_rotate=0
+    
 
     if discrete:
         if tick_labels is not None:
@@ -76,8 +76,8 @@ def plot_sample_images(map_list, plot_title, plot_path, nrows=2):
     fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*5, (nrows*4)+0.5))
     axs = axs.flatten()
 
-    for ax, (matrix, title, cbar_name, cmap, discrete, tick_labels) in zip(axs, map_list):
-        ax = plot_image_map(ax, matrix, cbar_name=cbar_name, cmap=cmap, discrete=discrete, tick_labels=tick_labels)
+    for ax, (matrix, title, cbar_name, cmap, extrema_values, discrete, tick_labels) in zip(axs, map_list):
+        ax = plot_image_map(ax, matrix, cbar_name=cbar_name, cmap=cmap, extrema_values=extrema_values, discrete=discrete, tick_labels=tick_labels)
         ax.set_title(title.replace('_', ' '))
         ax.set_xticks([])
         ax.set_yticks([])
@@ -92,38 +92,46 @@ def plot_sample_images(map_list, plot_title, plot_path, nrows=2):
     plt.close()
 
 
-def plot_simulation_samples(sample_dicts:list[dict], plot_path_prefix:str, enable_fixed_charges:bool, solver_images_only:bool):
+def plot_simulation_samples(sample_dicts:list[dict], global_minmax_values:dict, plot_path_prefix:str, solver_images_only:bool):
     for sample in sample_dicts:
         permittivity_titles = f"{PERMITTIVITY_TYPE.title()} Permittivity", "Permittivity"
         if PERMITTIVITY_TYPE == 'absolute':
             permittivity_titles[0]+=" (Farads/meters)"
             permittivity_titles[1]+=" (F/m)"
-
+        
+        image_extrema = global_minmax_values['image']
         if solver_images_only:
             map_list = [
-                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], '', False, None),
-                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', False, None),
-                (sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
-                (sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo', False, None)
+                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'plasma', tuple(image_extrema['permittivity_map']), False, None),
+                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r',  tuple(image_extrema['charge_distribution']), False, None),
+                (sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo',  tuple(image_extrema['initial_potential_map']), False, None),
+                (sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo',  tuple(image_extrema['final_potential_map']), False, None)
             ]
         else:
             map_list = [
-                (sample['mask_material_category_map'], "Material Category Mask", "Category", 'brg', True, material_category_names),
-                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'plasma', False, None),
-                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', False, None),
-                #(sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
-                (sample['mask_material_id_map'], "Material Id Map", "Id #", 'tab20b', True, None),  
-                (sample['image_final_potential_map'], "Potential Map (Volts)", "Potential (V)", 'turbo', False, None),
-                (sample['image_electric_field_magnitude'], "Electric Field Magnitude (Volts/meters)", "Field (V/m)", 'inferno', False, None)
+                (sample['mask_material_category_map'], "Material Category Mask", "Category", 'brg', None, True, material_category_names),
+                (sample['mask_material_id_map'], "Material Id Map", "Id #", 'tab20b', None, True, None),  
+                (sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo',  tuple(image_extrema['initial_potential_map']), False, None),
+                (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r',  tuple(image_extrema['charge_distribution']), False, None),
+                (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'plasma', tuple(image_extrema['permittivity_map']), False, None),
+                (sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo',  tuple(image_extrema['final_potential_map']), False, None)
             ]
+            # map_list = [
+            #     (sample['mask_material_category_map'], "Material Category Mask", "Category", 'brg', None, True, material_category_names),
+            #     (sample['image_permittivity_map'], permittivity_titles[0], permittivity_titles[1], 'plasma', tuple(image_extrema['permittivity_map']), False, None),
+            #     (sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", "Charge Density (C/m)", 'RdYlBu_r', tuple(image_extrema['charge_distribution']), False, None),
+            #     (sample['image_initial_potential_map'], "Initial Potential Map (Volts)", "Potential (V)", 'turbo',  tuple(image_extrema['initial_potential_map']), False, None),
+            #     (sample['mask_material_id_map'], "Material Id Map", "Id #", 'tab20b', None, True, None),  
+            #     (sample['image_final_potential_map'], "Final Potential Map (Volts)", "Potential (V)", 'turbo', tuple(image_extrema['final_potential_map']), False, None),
+            #     (sample['image_electric_field_magnitude'], "Electric Field Magnitude (Volts/meters)", "Field (V/m)", 'inferno', tuple(image_extrema['electric_field_magnitude']), False, None)
+            # ]
 
         final_state = 'stopped' if sample['meta_converged']==0 else 'converged'
-        solver_name = 'laplace' if enable_fixed_charges else 'poisson'
         random_seed = sample['meta_random_seed']
         max_delta = sample['meta_max_delta']
         total_iterations = sample['meta_total_iterations']
-        plot_title = f"Seed[{random_seed}]: {solver_name.title()} solver {final_state} with max_delta = {max_delta:g} after {total_iterations} iterations" 
+        plot_title = f"Seed[{random_seed}]: solver {final_state} with max_delta = {max_delta:g} after {total_iterations} iterations" 
 
         plot_path  = f"{plot_path_prefix}_{random_seed}.png"
         plot_sample_images(map_list, plot_title, plot_path)
-        logger.info(f"Saved seed {random_seed} plot for solver {solver_name} to: {plot_path}")
+        logger.info(f"Saved seed {random_seed} plot to: {plot_path}")

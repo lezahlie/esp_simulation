@@ -3,7 +3,6 @@ logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
 from arguments import process_args
 from utilities import *
 from electrostatic_simulation import generate_electrostatic_maps
-from plot_samples import plot_simulation_samples
 
 # processes function gets shape maps and saves to a file in chunks
 def process_image_maps(data_file, 
@@ -18,12 +17,9 @@ def process_image_maps(data_file,
                         enable_absolute_permittivity, 
                         max_iterations, 
                         convergence_tolerance, 
-                        plot_path, 
-                        simvp_format, 
                         shared_data, 
                         shared_lock):
 
-    cp_pid = current_process().pid
     remove_if_exists(data_file)
 
     for sr in split_seed_range(seed_range, seed_step):
@@ -37,19 +33,13 @@ def process_image_maps(data_file,
                                                     enable_fixed_charges=enable_fixed_charges, 
                                                     enable_absolute_permittivity=enable_absolute_permittivity, 
                                                     max_iterations=max_iterations,
-                                                    convergence_tolerance=convergence_tolerance,
-                                                    images_only=simvp_format)
+                                                    convergence_tolerance=convergence_tolerance)
         # save the data chunk to the hdf5 file
         save_to_hdf5(sim_results, data_file, seed_step)
 
         # update the global min and max for all scalers and images
-        local_min_max = compute_min_max_results(sim_results, simvp_format)
+        local_min_max = compute_min_max_results(sim_results)
         update_shared_data(local_min_max, shared_data, shared_lock)
-
-        # save 1 sample plot if enabled
-        if plot_path is not None:
-            sample_dicts = read_from_hdf5(data_file, sample_size=10)
-            plot_simulation_samples(sample_dicts, plot_path, enable_fixed_charges, simvp_format)
 
 
 # combines all results files into one big file
@@ -94,8 +84,6 @@ def main():
     seed_step = args.seed_step
     image_size = args.image_size
     max_iterations = args.max_iterations
-    normalize = args.normalize
-    simvp_format = args.simvp_format
     convergence_tolerance = args.convergence_tolerance
     enable_fixed_charges = args.enable_fixed_charges
     enable_absolute_permittivity = args.enable_absolute_permittivity
@@ -117,11 +105,6 @@ def main():
     file_prefix = f"{datatype_name}_{solver_name}_{image_size}x{image_size}"
     file_fmt = "hdf5"
     
-    # for saving plots
-    plot_folder, plot_path = None, None
-    if args.plot_samples:
-        plot_folder = create_folder(f"{output_folder_path}/plots")
-        plot_path = f"{plot_folder}/{file_prefix}" 
 
     # split up shapes between tasks(cores)
     seed_range_per_task = split_seed_range((min_seed, max_seed), total_seeds// req_cores)
@@ -140,13 +123,10 @@ def main():
                     enable_fixed_charges, 
                     enable_absolute_permittivity, 
                     max_iterations,
-                    convergence_tolerance,
-                    plot_path,
-                    simvp_format
+                    convergence_tolerance
                 ]
     
     global_min_max = run_processes(task_data_paths, seed_range_per_task, default_args)
-
 
     # combine process results
     if req_cores > 1:
@@ -155,19 +135,10 @@ def main():
     else:
         final_file_path = task_data_paths[0]
 
-    if simvp_format:
-        # save to simvp formatted numpy files
-        channels_minmax = normalize_hdf5_to_numpy(final_file_path, global_min_max, output_folder_path, datatype_name, normalize=normalize, chunk_size=seed_step)
-        save_to_json(path.join(output_folder_path, "global_min_max_values_simvp.json"), channels_minmax)
-        remove_if_exists(final_file_path)
-    else:
-        if normalize:
-            # save normalized copy fo hdf5 file
-            final_file_name = path.basename(final_file_path)
-            new_final_file_name = path.join(path.dirname(final_file_path), f"normalized_{final_file_name}")
-            normalize_hdf5_to_hdf5(final_file_path, new_final_file_name, global_min_max, chunk_size=seed_step)
-            remove_if_exists(final_file_path)
-        save_to_json(path.join(output_folder_path, "global_min_max_values_hdf5.json"), global_min_max)
+    global_minmax_file_name = path.basename(final_file_path).split('.')[0]
+    global_minmax_file_path = f"global_extrema_{file_fmt}_{global_minmax_file_name}.json"
+    save_to_json(path.join(output_folder_path, global_minmax_file_path), global_min_max)
+
 
 if __name__ == "__main__":
     try:

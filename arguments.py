@@ -3,8 +3,9 @@ import utilities as util
 from electrostatic_mappers import conductive_indices
 
 executable_groups = {
-    "electrostatic_simulation.py": ["image"],
-    "create_dataset.py": ["data", "image", "multiprocess"]
+    "electrostatic_simulation.py": ["simulation", "output"],
+    "create_dataset.py": ["simulation", "output", "multiprocess"],
+    "process_dataset.py": ["dataset", "output"]
 }
 
 def parse_tuple(value):
@@ -14,7 +15,7 @@ def add_multiprocess_group(parser, file_name):
     group = parser.add_argument_group('multi-process options')
     group.add_argument('-t', '--ntasks', dest="num_tasks", type=int, default=1, 
                     help="Number of tasks (cpu cores) to run in parallel. If multi-threading is enabled, max threads is set to (num_tasks * 2) | default: 1")
-    if "image" in executable_groups[file_name]:
+    if "simulation" in executable_groups[file_name]:
         group.add_argument('-k', '--seed-step', dest="seed_step", type=int, default=50, 
                         help="Number of seeds to be processed and written at a time | default: 100")
 
@@ -24,7 +25,7 @@ def check_multiprocess_args(args):
         raise ValueError(f"NUM_TASKS must be a INT between [1, {util.cpu_count()} - 1]")
 
 
-def add_image_group(parser):
+def add_simulation_group(parser):
     group = parser.add_argument_group("image generation options")
     group.add_argument('-s', '--image-size', dest='image_size', type=int, default=32, 
                     help="Length for one side of 2D image | default: 32")
@@ -55,7 +56,7 @@ def add_image_group(parser):
                     help="Tolerance for convergence; reached when the maximum change between iterations falls below this value | default: 1E-6")
 
 
-def check_image_args(args):
+def check_simulation_args(args):
     if not (4 < args.image_size < 1025):
         raise ValueError("IMAGE_SIZE must be a INT between [5, 1024]")
     
@@ -91,39 +92,66 @@ def check_image_args(args):
     if not (0.0 <= args.convergence_tolerance <= 1.0):
         raise ValueError("CONVERGENCE_TOLERENCE must be a float between [0.0, 1.0].")
 
-def add_data_group(parser,  file_name):
-    group = parser.add_argument_group('data format options')
+
+def add_output_group(parser):
+    group = parser.add_argument_group('output path options')
     group.add_argument('-o', '--output-path', dest='output_path', type=str, default='.',
                         help="Path the the directory to create [--output-folder] and save to | default: current directory")
-    
-    group.add_argument('-f', '--output-folder', dest='output_folder', default='espsim_dataset', type=str,
+    group.add_argument('-f', '--output-folder', dest='output_folder', type=str,
                         help="Output folder name to creave and save simulation data to | default: esp_dataset")
-    
-    group.add_argument('-w', '--disable-normalization', dest='normalize',  action='store_false', 
-                    help="Option to disable normalizing simulation outputs with a min max scaler | default: Off")
-
-    group.add_argument('-g', '--plot-samples', dest='plot_samples', action='store_true',
-                    help="Option to save sample plots from electrostatic simulation | default: Off")
-
-    group.add_argument('-v', '--simvp-format', dest='simvp_format', action='store_true',
-                    help="Option to save dataset formatted for SimVP | default: Off")
 
 
-def check_data_args(args):
+def check_output_args(args, filename):
     if hasattr(args, 'output_path') and not util.path.exists(args.output_path):
         raise FileNotFoundError(f"OUTPUT_PATH '{args.output_path}' does not exist")
-    if not (0 < len(args.output_folder) < 129):
+    if isinstance(args.output_folder, str) and not (0 < len(args.output_folder) < 129):
         raise ValueError(f"OUTPUT_FOLDER '{args.output_folder}' must have a length between [1, 128]")
+    if filename == 'create_dataset.py' and args.output_folder is None:
+        raise ValueError(f"OUTPUT_FOLDER '{args.output_folder}' is required for new datset creation")
+    
+def add_dataset_group(parser):
+    group = parser.add_argument_group('dataset options')
+
+    group.add_argument('-i', '--dataset-path', dest='dataset_path', type=str, default='.',
+                        help="Path the the input dataset to read and process | default: current directory")
+
+    group.add_argument('-w', '--disable-normalization', dest='normalize',  action='store_false', 
+                    help="Option to disable normalizing simulation outputs with a min max scaler | default: Off")
+                    
+    group.add_argument('-v', '--simvp-format', dest='simvp_format', action='store_true',
+                    help="Option to save dataset formatted for SimVP | default: Off")
+    
+    group.add_argument('-g', '--sample-plots', dest='sample_plots', type=int, default=0,
+                    help="Optional number of samples to plot; No samples are plotted if set to '0' | default: 0")
+
+
+def check_dataset_args(args):
+    if hasattr(args, 'dataset_path') and not util.path.isfile(args.dataset_path) or '.hdf5' not in args.dataset_path:
+        raise FileNotFoundError(f"DATASET_PATH '{args.dataset_path}' does not exist or is not a hdf5 dataset")
+    
+    seed_range = util.re.findall(r'\d+', util.path.basename(args.dataset_path).split('.')[0])
+    max_plots = int(seed_range[-1])-int(seed_range[-2])+1
+
+    if not (0 <= args.sample_plots <= max_plots):
+            raise ValueError(f"SAMPLE_PLOTS '{args.sample_plots}' must be None or in range [1, {max_plots}]")
+    
+    if args.sample_plots == 0 and not args.simvp_format and not args.normalize:
+        raise ValueError(f"No options are enabled to normalize, format, or plot samples...")
+
 
 
 def check_args(parser, file_name):
     args = parser.parse_args()
-    if "data" in executable_groups[file_name]:
-        check_data_args(args)
-    if "image" in executable_groups[file_name]:
-        check_image_args(args)
+
     if "multiprocess" in executable_groups[file_name]:
         check_multiprocess_args(args)
+    if "simulation" in executable_groups[file_name]:
+        check_simulation_args(args)
+    if "output" in executable_groups[file_name]:
+        check_output_args(args, file_name)
+    if "dataset" in executable_groups[file_name]:
+        check_dataset_args(args)
+
     return args
 
 
@@ -133,12 +161,14 @@ def process_args(exe_file):
     # @note unused for now
     #parser.add_argument('-d', '--debug', dest='debug_on', action='store_true', 
                         #help="Enables debug option and verbose printing | default: off")
-    if "data" in executable_groups[file_name]:
-        add_data_group(parser, file_name)
+    if "dataset" in executable_groups[file_name]:
+        add_dataset_group(parser)
     if "multiprocess" in executable_groups[file_name]:
         add_multiprocess_group(parser, file_name)
-    if "image" in executable_groups[file_name]:
-        add_image_group(parser)
-
+    if "simulation" in executable_groups[file_name]:
+        add_simulation_group(parser)
+    if "output" in executable_groups[file_name]:
+        add_output_group(parser)
     args = check_args(parser, file_name)
+
     return args

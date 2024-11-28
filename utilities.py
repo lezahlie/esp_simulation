@@ -125,9 +125,9 @@ def update_shared_data(min_max_dict, shared_data, shared_lock):
 
 
 # computing the local min_max for each result for current
-def compute_min_max_results(sim_results_list, simvp_format):
+def compute_min_max_results(sim_results_list):
     min_max_dict = {}
-    data_groups = ['image'] if simvp_format else ['image', 'metric']
+    data_groups = ['image', 'metric']
     
     for sim_results in sim_results_list:
         for group in data_groups:
@@ -214,6 +214,16 @@ def save_to_json(file_path, content_in:dict, mode='w', indent=4):
         content_out = serialize_numpy_types(content_in)
         with open(file_path, mode) as json_file:
             dump(content_out, json_file, indent=indent)
+    except Exception as e:
+        logger.error(e, stacklevel=2)   
+
+
+# reads json file
+def read_from_json(file_path):
+    try:
+        with open(file_path, 'r') as json_file:
+            content = load(json_file)
+        return content
     except Exception as e:
         logger.error(e, stacklevel=2)   
 
@@ -439,8 +449,6 @@ def normalize_hdf5_to_hdf5(input_file_path: str, output_file_path: str,
                                     value = minmax_scaler(value, minmax_val, scaler_range, inverse)
                                 dst_subgroup.attrs[attr_key] = value
                                 logger.debug(f"Normalized attribute for {group.name}: {attr_key} => {value}")
-
-        save_to_json(path.join(path.dirname(output_file_path), "global_min_max_values_hdf5.json"), minmax_values)
 
     except (OSError, IOError, TypeError) as e:
         logger.error(f"Cannot read and normalize data from HDF5 file due to: {e}", stacklevel=2)

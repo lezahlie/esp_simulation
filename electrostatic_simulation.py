@@ -4,7 +4,7 @@ from utilities import np, create_folder, read_from_hdf5, save_to_hdf5
 from electrostatic_mappers import *
 from electrostatic_metrics import *
 from electrostatic_solvers import compute_electrostatic_potential
-from connect_materials import connect_cellular_automata_shape, preserve_borders
+from connect_materials import connect_cellular_automata_shape
 from plot_samples import plot_simulation_samples
 
 
@@ -194,11 +194,6 @@ def main():
     laplace_data_path = f"{data_folder}/laplace_{data_file}"
     save_to_hdf5(result_dataset, laplace_data_path)
 
-    # testing fixed charges
-    sample_dicts = read_from_hdf5(laplace_data_path, sample_size=5)
-    plot_path_prefix = f"{plot_folder}/laplace_images_{grid_length}x{grid_length}"
-    plot_simulation_samples(sample_dicts, plot_path_prefix, fixed_charges, minimal=False)
-
     fixed_charges=False
     result_dataset = generate_electrostatic_maps(min_seed=min_seed, 
                                                 max_seed=max_seed, 
@@ -215,10 +210,6 @@ def main():
 
     poisson_data_path = f"{data_folder}/poisson_{data_file}"
     save_to_hdf5(result_dataset, poisson_data_path)
-
-    sample_dicts = read_from_hdf5(poisson_data_path, sample_size=5)
-    plot_path_prefix = f"{plot_folder}/poisson_images_{grid_length}x{grid_length}"
-    plot_simulation_samples(sample_dicts, plot_path_prefix, fixed_charges, minimal=False)
 
 
 if __name__ == "__main__":

@@ -20,19 +20,14 @@ conda activate esp_env
 ```bash
 python3 create_dataset.py \
   # 1. Output options
-  --output-path "<path/to/dir>" \         # Ouput directory outside of project root
-  --output-folder "<folder_name>" \       # Output folder name
-  --plot-samples \                        # Plots random samples of simulation outputs
+  --output-path "<path/to/dir>" \         # Ouput directory to save to, defaults to project root
+  --output-folder "<folder_name>" \       # Output folder name, required for dataset creation
 
   # 2. Dataset creation options
   --min-seed 1 \                          # Min RNG seed 
   --max-seed 1000 \                       # Max RNG seed 
   --seed-step 100 \                       # Seeds each core should process at a time (saves memory)
   --ntasks 2 \                            # Number of multiprocessing cores, seeds are divided between core
-  
-  # 3. Dataset format options
-  --simvp-format \                        # Option to save the dataset specifically formatted for SimVP
-  --disable-normalization \               # Prevent default behavior to normalize all images and scalars 
 
   # 4. Primary image generation options
   --image-size 32 \                       # Size of one side of the grid image 
@@ -50,70 +45,116 @@ python3 create_dataset.py \
   --enable-absolute-permittivity          # Alternative to using dielectric constants (uncommon, can ignore)
 ```
 
-### Example runs with minimal options for HDF5 dataset
+### Example runs with minimal options for creating a dataset
 
 ```bash
+# Outputs: ./hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5
 python3 create_dataset.py \
+  --output-folder=hdf5_dataset_1 \
+  --ntasks=1 \
   --min-seed=1 \                 
   --max-seed=1000 \                    
   --seed-step=100 \ 
-  --ntasks=2 \
   --image-size=32 \ 
-  --conductive-cell-ratio=0.65 \ 
-  --conductive-material-count=5 \
   --max-iterations=2500 \
-  --plot-samples 
+  --conductive-cell-ratio=0.65 \ 
+  --conductive-material-count=5 
 
-
+# Outputs: ./hdf5_dataset_2/electrostatic_poisson_32x32_500-1500.hdf5
 python3 create_dataset.py \
+  --output-folder=hdf5_dataset_2 \
+  --ntasks=2 \
   --min-seed=500 \                 
   --max-seed=1500 \                    
   --seed-step=100 \ 
   --image-size=32 \ 
-  --conductive-cell-prob=0.5 \ 
-  --conductive-material-range=1,3 \
   --max-iterations=2500 \
-  --ntasks=2 \
-  --plot-samples
+  --conductive-cell-prob=0.5 \ 
+  --conductive-material-range=1,3 
 
-
+# Outputs: ./hdf5_dataset_3/electrostatic_laplace_32x32_2500-5100.hdf5
 python3 create_dataset.py \
-  --min-seed=100 \                 
+  --output-folder=hdf5_dataset_3 \
+  --ntasks=3 \
+  --min-seed=2500 \                 
   --max-seed=5100 \                    
   --seed-step=100 \ 
-  --image-size=64 \ 
+  --image-size=32 \ 
+  --max-iterations=5000 \
   --conductive-cell-prob=0.75 \ 
   --conductive-material-count=1 \
-  --max-iterations=5000 \
-  --ntasks=2 \
-  --plot-samples
+  --enable-fixed-charges 
 
+# Outputs: ./hdf5_dataset_4/electrostatic_laplace_32x32_100-1500.hdf5
 python3 create_dataset.py \
+  --output-folder=hdf5_dataset_4 \
+  --ntasks=4 \
   --min-seed=100 \                 
-  --max-seed=5100 \                    
+  --max-seed=1500 \                    
   --seed-step=100 \ 
-  --image-size=64 \ 
+  --image-size=32 \ 
+  --max-iterations=5000 \
   --conductive-cell-ratio=0.25 \ 
   --conductive-material-range=1,10 \
-  --max-iterations=5000 \
-  --ntasks=2 \
-  --plot-samples
-
+  --enable-fixed-charges 
 ```
 
-### Example run with minimal options for SimVP dataset
+## Normalize dataset, plot samples, or reformat for SimVP
+
+### File: `process_dataset.py`
+
+### Example run with all options
 
 ```bash
 python3 create_dataset.py \
-  --min-seed=1 \                 
-  --max-seed=1000 \                    
-  --seed-step=50 \ 
-  --image-size=32 \ 
-  --material-cell-ratio=1.0 \
-  --conductive-material-ratio=0.5 \ 
-  --max-iterations=2000 \
-  --ntasks=2 \
-  --simvp-format 
+  # 1. Input options
+  --dataset-path "<path/to/datafile>" \   # Input path to dataset file to read and process
+
+  # 2. Output options
+  --output-path "<path/to/dir>" \         # Output directory outside of project root, defaults to project root
+  --output-folder "<folder_name>" \       # Output folder name, defaults to [--dataset-path] root dir
+
+  # 3. Dataset format options
+  --simvp-format \                        # Option to save the dataset specifically formatted for SimVP
+  --disable-normalization \               # Prevent default behavior to normalize all images and scalars 
+
+  # 4. Visualization options
+  --sample-plots <int>                   # Number of samples to plot from the [--dataset-path] hdf5 file
+```
+
+### Example run to normalize and reformat for SimVP dataset 
+
+```bash
+python3 process_dataset.py \
+    --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --output-folder=simvp_example_1 \
+    --simvp-format \
+    --sample-plots=100  # omit for no plots
+
+# Outputs: ./simvp_dataset_1/[simvp formatted structures ...]
+#          ./simvp_dataset_1/plots/[sample plot files ...]
+```
+
+### Example run to normalize to a HDF5 file
+
+```bash
+python3 process_dataset.py \
+    --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --sample-plots=100  # omit for no plots
+
+# Outputs: ./hdf5_dataset_1/normalized_electrostatic_poisson_32x32_1-1000.hdf5
+#          ./hdf5_dataset_1/plots/[sample plot files ...]
+```
+
+### Example run to plot samples only (HDF5 format only)
+
+```bash
+python3 process_dataset.py \
+    --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --sample-plots=100 \
+    --disable-normalization
+
+# Outputs: /hdf5_dataset_1/plots/[sample plot files ...]
 ```
 
 ### General Notes
@@ -133,11 +174,10 @@ python3 create_dataset.py \
     - `metric`: numerical data computed from the simulation output (e.g., total charge)
   - Array groups: `['mask', 'image']`, saved as HDF5 Datasets
       - `mask`: categorical masks for data generation (e.g., binary mask for conductive cells)
-      - `image`: 2D arrays containing computed numercial data (e.g., charge distribution)
+      - `image`: 2D arrays containing computed numerical data (e.g., charge distribution)
 - Each simulation record is output to a HDF5 Group containing the above Groups
-    <details>   
-    <summary> Example Record Structure </summary> 
-
+  <details>   
+    <summary>EXAMPLE RECORD STRUCTURE </summary> 
     ```plaintext
     GROUP "record_1" {
       GROUP "image" {
@@ -226,13 +266,12 @@ python3 create_dataset.py \
       }
     }
     ```
-
-    <details> 
+  <details> 
 - Can manually add/remove saved data in: `[electrostatic_simulation.py:run_electrostatic_simulation()]`
   - Or just filter what you need after reading record in with: `[utilities.py:read_from_hdf5()]`
 - HDF5 data files are saved in: `path/to/<output_folder_name>/data`
 - Global min/max normalization values are saved to: `path/to/<output_folder_name>/global_min_max_values_hdf5.json`
-  - Only `'images'` and `'metrics'` groups are normalized, `masks` are catagorical 
+  - Only `'images'` and `'metrics'` groups are normalized, `masks` are categorical 
 
 ### SimVP Format Notes
 - Optional SimVP formatted dataset only includes the minimal input/output images
@@ -249,7 +288,11 @@ python3 create_dataset.py \
 - Can manually add/remove any images in `[utilities.py:normalize_hdf5_to_numpy()]` 
   - Any array from the `'image'` group can be added as an input or output 
   - If SimVP supports encoding categorical data, you can add arrays from `mask`
-- Global min/max normalization values are saved to: `path/to/<output_folder_name>/global_min_max_values_simvp.json`
+- Global extrema values for normalization are saved to: `path/to/<output_folder_name>/global_min_max_values_simvp.json`
+  - The global extrema is the min and max values for all numerical data across the entire dataset
+    - This means the global min and max for arrays is the min and max cells values for all instances of that array
+    - Likewise, the global min and max for scalars is the min and max values for all instances of that scalar
+  - Sample plot use the global extrema values for the min and max color map bounds
 
 ### Simulation Solver Notes:
 - The solver equations used depends on if charges are considered *free* or *fixed*
@@ -279,7 +322,6 @@ python3 create_dataset.py \
   - Selected conductive materials are randomized based on RNG seed for both options
 4. Remaining non-border cells are filled randomly based on RNG seed with isolating materials
 5. The borders are set to `free space` to create an isolated environment to start with
-
 
 ### Reproducibility Notes:
 - Total simulation samples is based on seed range:
