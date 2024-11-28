@@ -160,17 +160,17 @@ python3 process_dataset.py \
 
 ### General Notes
 - Example scripts are saved to: `example_scripts`
-  1. `create_hdf5_dataset.sh` 
+  - `create_hdf5_dataset.sh` 
     - Executable program: `create_dataset.py`
     - Creates an HDF5 dataset from a set of simulation runs
-  2. `normalize_hdf5_dataset.sh`
+  - `normalize_hdf5_dataset.sh`
     - Executable program: `process_dataset.py`
     - Creates a normalized HDF5 dataset from an existing HDF5 dataset
     - Optionally can save sample plots of the normalized data
-  3. `plot_dataset_samples.sh`
+  - `plot_dataset_samples.sh`
     - Executable program: `process_dataset.py`
     - Demonstrates only plotting samples from the original HFD5 dataset
-  4. `reformat_for_simvp.sh`
+  - `reformat_for_simvp.sh`
       - executable program: `process_dataset.py`
       - Converts an existing HDF5 dataset into a compatible format for SimVP
       - Optionally can plot samples of the data reformatted for SimVP
