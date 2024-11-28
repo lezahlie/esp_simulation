@@ -54,10 +54,10 @@ def setup_logger(program_file, log_stdout=False, log_stderr=True):
     logs_path = f"logs/{log_file}"
 
     logger = logging.getLogger(module_name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     
     handler = logging.FileHandler(logs_path)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     formatter = logging.Formatter('[%(asctime)s] || [%(levelname)s] || [%(filename)s:%(funcName)s:%(lineno)d] || %(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -79,3 +79,14 @@ def setup_logger(program_file, log_stdout=False, log_stderr=True):
     global_logger = logger
     global_logger_handler = LoggerHandler(global_logger)
     return logger
+
+
+def set_logger_level(level:int=20):
+    global global_logger
+    if level in logging._levelToName:
+        global_logger.setLevel(level)
+        for handler in global_logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.setLevel(level)
+            #global_logger.info(f"Handler: {handler}, Level: {handler.level}")
+        global_logger.info(f"Logger level set to {logging._levelToName[level]}")

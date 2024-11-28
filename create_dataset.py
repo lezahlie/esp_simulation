@@ -1,4 +1,4 @@
-from setup_logger import setup_logger
+from setup_logger import setup_logger, set_logger_level
 logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
 from arguments import process_args
 from utilities import *
@@ -65,17 +65,20 @@ def run_processes(task_data_paths, seed_range_per_task, default_args):
         p = Process(target=process_image_maps, name=f"esp_simulation_p{i}", args=p_args)
         procs_list.append(p)
         p.start()
-        logger.info(f"PID[{p.pid}]: child started")
+        logger.info(f"PID[{p.pid}]: child started running simulations for seeds {seed_range}")
 
     for p in procs_list:
         p.join()
-        logger.info(f"PID[{p.pid}]: child joined")
+        logger.info(f"PID[{p.pid}]: child joined parent")
 
     return dict(shared_data)
 
 
 def main():
     args = process_args(__file__)
+
+    if args.debug_on:
+        set_logger_level(10)
 
     # all the possible args
     req_cores = args.num_tasks
@@ -88,6 +91,7 @@ def main():
     enable_fixed_charges = args.enable_fixed_charges
     enable_absolute_permittivity = args.enable_absolute_permittivity
 
+
     conductive_cell_ratio = getattr(args, 'conductive_cell_ratio', None)
     conductive_cell_prob = getattr(args, 'conductive_cell_prob', None)
     conductive_material_count = getattr(args, 'conductive_material_count', None)
@@ -96,19 +100,18 @@ def main():
     total_seeds = (max_seed-min_seed+1)
     # friendly names
     solver_name = 'laplace' if enable_fixed_charges else 'poisson'
-    datatype_name = "electrostatic"
-
-    output_folder_path = path.join(args.output_path, args.output_folder)
-    data_path = create_folder(f"{output_folder_path}")
-
-    # creates output folder, file name prefix, file ext
-    file_prefix = f"{datatype_name}_{solver_name}_{image_size}x{image_size}"
-    file_fmt = "hdf5"
     
+    # creates output folder and data file prefix
+    output_folder_path = path.join(args.output_path, args.output_folder)
+    data_path = create_folder(output_folder_path)
+    datafile_prefix = f"{DATATYPE_NAME}_{solver_name}_{image_size}x{image_size}"
+
+    arguments_file_path = f"arguments_{datafile_prefix}_{min_seed}-{max_seed}.json"
+    save_to_json(path.join(output_folder_path, arguments_file_path), vars(args))
 
     # split up shapes between tasks(cores)
     seed_range_per_task = split_seed_range((min_seed, max_seed), total_seeds// req_cores)
-    task_data_paths = [f"{data_path}/{file_prefix}_{seed_range[0]}-{seed_range[1]}.{file_fmt}" for seed_range in seed_range_per_task]
+    task_data_paths = [f"{data_path}/{datafile_prefix}_{seed_range[0]}-{seed_range[1]}.{DEFAULT_DATAFILE_EXT}" for seed_range in seed_range_per_task]
 
     # start process tasks
     logger.info(f"PID[{current_process().pid}]: parent process")
@@ -130,13 +133,13 @@ def main():
 
     # combine process results
     if req_cores > 1:
-        final_file_path = f"{data_path}/{file_prefix}_{min_seed}-{max_seed}.{file_fmt}"
+        final_file_path = f"{data_path}/{datafile_prefix}_{min_seed}-{max_seed}.{DEFAULT_DATAFILE_EXT}"
         gather_task_results(task_data_paths, final_file_path , seed_step)
     else:
         final_file_path = task_data_paths[0]
 
     global_minmax_file_name = path.basename(final_file_path).split('.')[0]
-    global_minmax_file_path = f"global_extrema_{file_fmt}_{global_minmax_file_name}.json"
+    global_minmax_file_path = f"global_extrema_{DEFAULT_DATAFILE_EXT}_{global_minmax_file_name}.json"
     save_to_json(path.join(output_folder_path, global_minmax_file_path), global_min_max)
 
 

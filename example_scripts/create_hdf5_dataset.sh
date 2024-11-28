@@ -8,7 +8,7 @@ program_name=create_dataset
 
 prog_args=(
     #"--output-path=path/to/dir"  
-    "--output-folder=hdf5_test_dataset"   
+    "--output-folder=hdf5_dataset_example"   
     "--min-seed=1"                      
     "--max-seed=1000"
     "--seed-step=100"
@@ -22,6 +22,7 @@ prog_args=(
     #"--convergence-tolerance=1e-8"
     #"--enable-fixed-charges"
     #"--enable-absolute-permittivity"
+    "--debug"
 )
 
 echo $div

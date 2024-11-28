@@ -95,7 +95,7 @@ def check_simulation_args(args):
 
 def add_output_group(parser):
     group = parser.add_argument_group('output path options')
-    group.add_argument('-o', '--output-path', dest='output_path', type=str, default='.',
+    group.add_argument('-o', '--output-path', dest='output_path', type=str, default=util.path.dirname(util.path.abspath(__file__)),
                         help="Path the the directory to create [--output-folder] and save to | default: current directory")
     group.add_argument('-f', '--output-folder', dest='output_folder', type=str,
                         help="Output folder name to creave and save simulation data to | default: esp_dataset")
@@ -158,9 +158,9 @@ def check_args(parser, file_name):
 def process_args(exe_file):
     file_name = util.path.basename(exe_file)
     parser = ap.ArgumentParser(description="Electro Static Potential Simulation")
-    # @note unused for now
-    #parser.add_argument('-d', '--debug', dest='debug_on', action='store_true', 
-                        #help="Enables debug option and verbose printing | default: off")
+    parser.add_argument('-d', '--debug', dest='debug_on', action='store_true', 
+                        help="Enables logging with debug level verbosity | default: off")
+
     if "dataset" in executable_groups[file_name]:
         add_dataset_group(parser)
     if "multiprocess" in executable_groups[file_name]:

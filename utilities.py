@@ -15,7 +15,12 @@ import warnings
 import scipy.ndimage as ndimg
 import numpy as np
 import hashlib
-from collections import deque
+from collections import deque, namedtuple
+from glob import glob
+
+DEFAULT_DATAFILE_EXT = "hdf5"
+SIMVP_DATAFILE_EXT = 'npy'
+DATATYPE_NAME = "electrostatic"
 
 def dynamic_precision_round(value):
     factor = 10 ** 2
