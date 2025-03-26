@@ -54,7 +54,8 @@ def add_simulation_group(parser):
                     help="Maximum allowed iterations to run electrostatic potential solvers | default: 3000")
     group.add_argument('-e', '--convergence-tolerance', dest='convergence_tolerance', type=float, default=1e-6,
                     help="Tolerance for convergence; reached when the maximum change between iterations falls below this value | default: 1E-6")
-
+    group.add_argument('-w', '--save-intermediate-states', dest='save_states', action='store_true',
+                help="Enables saving states, where iteration is a power of two | default: Off")
 
 def check_simulation_args(args):
     if not (4 < args.image_size < 1025):
@@ -98,7 +99,7 @@ def add_output_group(parser):
     group.add_argument('-o', '--output-path', dest='output_path', type=str, default=util.path.dirname(util.path.abspath(__file__)),
                         help="Path the the directory to create [--output-folder] and save to | default: current directory")
     group.add_argument('-f', '--output-folder', dest='output_folder', type=str,
-                        help="Output folder name to creave and save simulation data to | default: esp_dataset")
+                        help="Output folder name to create and save simulation data to | default: esp_dataset")
 
 
 def check_output_args(args, filename):
@@ -123,7 +124,9 @@ def add_dataset_group(parser):
     
     group.add_argument('-g', '--sample-plots', dest='sample_plots', type=int, default=0,
                     help="Optional number of samples to plot; No samples are plotted if set to '0' | default: 0")
-
+    
+    group.add_argument('-a', '--plot-states', dest='plot_states', action='store_true', 
+                        help="Option to plot initial, intermediate, and final states; Requires passing [--save-intermediate-states] to create_dataset.py; | default: Off")
 
 def check_dataset_args(args):
     if hasattr(args, 'dataset_path') and not util.path.isfile(args.dataset_path) or '.hdf5' not in args.dataset_path:

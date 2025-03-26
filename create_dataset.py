@@ -17,6 +17,7 @@ def process_image_maps(data_file,
                         enable_absolute_permittivity, 
                         max_iterations, 
                         convergence_tolerance, 
+                        save_states,
                         shared_data, 
                         shared_lock):
 
@@ -33,7 +34,8 @@ def process_image_maps(data_file,
                                                     enable_fixed_charges=enable_fixed_charges, 
                                                     enable_absolute_permittivity=enable_absolute_permittivity, 
                                                     max_iterations=max_iterations,
-                                                    convergence_tolerance=convergence_tolerance)
+                                                    convergence_tolerance=convergence_tolerance,
+                                                    save_states=save_states)
         # save the data chunk to the hdf5 file
         save_to_hdf5(sim_results, data_file, seed_step)
 
@@ -90,8 +92,8 @@ def main():
     convergence_tolerance = args.convergence_tolerance
     enable_fixed_charges = args.enable_fixed_charges
     enable_absolute_permittivity = args.enable_absolute_permittivity
-
-
+    save_states = args.save_states
+    
     conductive_cell_ratio = getattr(args, 'conductive_cell_ratio', None)
     conductive_cell_prob = getattr(args, 'conductive_cell_prob', None)
     conductive_material_count = getattr(args, 'conductive_material_count', None)
@@ -126,7 +128,8 @@ def main():
                     enable_fixed_charges, 
                     enable_absolute_permittivity, 
                     max_iterations,
-                    convergence_tolerance
+                    convergence_tolerance,
+                    save_states
                 ]
     
     global_min_max = run_processes(task_data_paths, seed_range_per_task, default_args)

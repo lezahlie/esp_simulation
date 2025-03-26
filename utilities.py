@@ -133,7 +133,7 @@ def update_shared_data(min_max_dict, shared_data, shared_lock):
 def compute_min_max_results(sim_results_list):
     min_max_dict = {}
     data_groups = ['image', 'metric']
-    
+
     for sim_results in sim_results_list:
         for group in data_groups:
             if group not in sim_results:

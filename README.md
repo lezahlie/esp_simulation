@@ -44,6 +44,7 @@ python3 create_dataset.py \
   --convergence-tolerance 1e-6 \          # Tolerance for determining when solution has converged
   --enable-fixed-charges  \               # Charges are fixed instead of free (less variation, different solver)
   --enable-absolute-permittivity          # Alternative to using dielectric constants (uncommon, can ignore)
+  --save-intermediate-states              # Saves all intermediate potential map states (optional, adds overhead)
 ```
 
 ### Example runs with minimal options for creating a dataset
@@ -81,8 +82,8 @@ python3 create_dataset.py \
   --max-seed=5100 \                    
   --seed-step=100 \ 
   --image-size=32 \ 
-  --max-iterations=5000 \
-  --conductive-cell-prob=0.75 \ 
+  --max-iterations=3000 \
+  --conductive-cell-prob=0.5 \ 
   --conductive-material-count=1 \
   --enable-fixed-charges 
 
@@ -94,7 +95,7 @@ python3 create_dataset.py \
   --max-seed=1500 \                    
   --seed-step=100 \ 
   --image-size=32 \ 
-  --max-iterations=5000 \
+  --max-iterations=3000 \
   --conductive-cell-ratio=0.25 \ 
   --conductive-material-range=1,10 \
   --enable-fixed-charges 
@@ -107,7 +108,7 @@ python3 create_dataset.py \
 ### Example run with all options
 
 ```bash
-python3 create_dataset.py \
+python3 process_dataset.py \
   # 1. Input options
   --dataset-path "<path/to/datafile>" \   # Input path to dataset file to read and process
 
@@ -159,190 +160,66 @@ python3 process_dataset.py \
 ```
 
 ### General Notes
-- Example scripts are saved to: `example_scripts`
-  - `create_hdf5_dataset.sh` 
-    - Executable program: `create_dataset.py`
-    - Creates an HDF5 dataset from a set of simulation runs
-  - `normalize_hdf5_dataset.sh`
-    - Executable program: `process_dataset.py`
-    - Creates a normalized HDF5 dataset from an existing HDF5 dataset
-    - Optionally can save sample plots of the normalized data
-  - `plot_dataset_samples.sh`
-    - Executable program: `process_dataset.py`
-    - Demonstrates only plotting samples from the original HFD5 dataset
-  - `reformat_for_simvp.sh`
-      - executable program: `process_dataset.py`
-      - Converts an existing HDF5 dataset into a compatible format for SimVP
-      - Optionally can plot samples of the data reformatted for SimVP
-- Sample plots are saved in: `path/to/<output_folder_name>/plots`
-- Logs for stdout/stderr are saved in: `esp_simulation/logs`
-- Normalization is enabled by default and uses min/max scaling between 0.0, 1.0 
-  - Global extrema values are computed for all numerical data across the entire dataset
-    - The global extrema for arrays is the min and max cell values for all instances of that array
-    - Likewise, the global extrema for scalars is the min and max values for all instances of that scalar
-  - Samples plotted from non-normalized datasets used the saved global extrema for the color map boundaries
+- Scripts in `example_scripts/`:
+  - `create_hdf5_dataset.sh` → `create_dataset.py`: Generates HDF5 dataset from simulation runs
+  - `normalize_hdf5_dataset.sh` → `process_dataset.py`: Normalizes HDF5 dataset; optionally plots samples
+  - `plot_dataset_samples.sh` → `process_dataset.py`: Plots samples from original HDF5 dataset
+  - `reformat_for_simvp.sh` → `process_dataset.py`: Converts HDF5 to SimVP format; optionally plots samples
+- Output:
+  - Sample plots → `path/to/<output_folder>/plots`
+  - Logs → `esp_simulation/logs`
+  - Global extrema normalization is enabled by default
 
-### HDF5 Format Notes
-- Default HDF5 formatted dataset will contain simulation records of all relevant simulation data
-  - Scalar groups: `['meta', 'metric']`, saved as HDF5 Attributes
-    - `metadata`: metadata from the simulation run (e.g., total iterations)
-    - `metric`: numerical data computed from the simulation output (e.g., total charge)
-  - Array groups: `['mask', 'image']`, saved as HDF5 Datasets
-      - `mask`: categorical masks for data generation (e.g., binary mask for conductive cells)
-      - `image`: 2D arrays containing computed numerical data (e.g., charge distribution)
-- Global extrema values for normalization are saved to: `path/to/<output_folder_name>/global_extrema_hdf5_<original_datafile_name>.json`
-    - Only `'images'` `'metrics'` groups are normalized (`masks` are categorical and `'meta'` is metadata)
-- Each simulation record is output to a HDF5 Group containing the above Groups
-  <details>   
-    <summary>EXAMPLE RECORD STRUCTURE </summary> 
+### HDF5 Format
+- Each simulation saved as a group with:
+  - **Scalar groups** (`meta`, `metric`): stored as attributes
+  - **Array groups** (`mask`, `image`): stored as datasets
+- Normalization:
+  - Only `image` and `metric` are normalized
+  - Extrema saved to: `global_extrema_hdf5_<original_datafile>.json`
 
-    ```plaintext
-    GROUP "record_1" {
-      GROUP "image" {
-          DATASET "charge_distribution" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "electric_field_magnitude" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "electric_field_x" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "electric_field_y" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "final_potential_map" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "initial_potential_map" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "permittivity_map" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-      }
-      GROUP "mask" {
-          DATASET "conductive_material_map" {
-            DATATYPE  H5T_ENUM {
-                H5T_STD_I8LE;
-                "FALSE"            0;
-                "TRUE"             1;
-            }
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "material_category_map" {
-            DATATYPE  H5T_STD_I64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "material_id_map" {
-            DATATYPE  H5T_STD_I64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-      }
-      GROUP "meta" {
-          ATTRIBUTE "converged" {
-            DATATYPE  H5T_STD_I64LE
-            DATASPACE  SCALAR
-          }
-          ATTRIBUTE "image_size" {
-            DATATYPE  H5T_STD_I64LE
-            DATASPACE  SCALAR
-          }
-          ATTRIBUTE "max_delta" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SCALAR
-          }
-          ATTRIBUTE "random_seed" {
-            DATATYPE  H5T_STD_I64LE
-            DATASPACE  SCALAR
-          }
-          ATTRIBUTE "total_iterations" {
-            DATATYPE  H5T_STD_I64LE
-            DATASPACE  SCALAR
-          }
-      }
-      GROUP "metric" {
-          ATTRIBUTE "electric_flux" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SCALAR
-          }
-          ATTRIBUTE "total_charge" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SCALAR
-          }
-          ATTRIBUTE "total_energy" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SCALAR
-          }
-      }
-    }
-    ```
-  <details> 
+### SimVP Format
+- Target format for: https://github.com/drewg02/OpenSTL.git
+- Each frame → folder: `<hash>_<datatype>_<id>`
+  - Files:
+    - `0.npy`: Input (3-channel): Initial Potential, Permittivity, Charge
+    - `1.npy`: Output (1-channel): Final Potential
+- Extrema saved to: `global_extrema_npy_<original_datafile>.json`
 
-### SimVP Format Notes
-- Optional SimVP formatted dataset only includes the minimal input/output images
-- Specifically formatted for this fork of SimVP: https://github.com/drewg02/OpenSTL.git
-- Each simulation frame is saved to folder: `<unique_hash>_<datatype_name>_<#id>`
-  - `<unique_hash>` is a hash of the input conditions
-  - `<datatype_name>` is the simulation data name: `electrostatic`
-  - `<#id>` is a numeric ID for the simulation outputs from 0 to N (not based on seed #)
-- Each folder contains 2 NumPy files:
-  - `<unique_hash>_<datatype_name>_<#id>/0.npy`: Input images saved as (Channels x Width X Height)
-    - Initial condition images (3 Channels): `Initial Potential Map`, `Relative Permittivity`, `Charge Distribution`
-  - `<unique_hash>_<datatype_name>_<#id>/1.npy`: Output image saved as (1 x Width X Height)
-    - Final state image (1 Channels): `Final Potential Map`
-- Global extrema values for normalization are saved to: `path/to/<output_folder_name>/global_extrema_npy_<original_datafile_name>.json`
-    - All initial condition images and final state images are normalized respectively
+### Solver Notes
+- Default: *free charges* (Poisson’s equation + Dirichlet BCs)
+  - More variation, longer sim time
+  - Charge distribution is generated
+- With `--enable-fixed-charges`: *fixed charges* (Laplace’s equation + Neumann BCs)
+  - Less variation, faster sim time
+  - Charge distribution is derived
 
-### Simulation Solver Notes:
-- The solver equations used depends on if charges are considered *free* or *fixed*
-- By default charges are considered *free*, meaning they affect the electrostatic potential over time
-  - Free charges provide variation in the output, faster convergence, but longer simulation times
-  - Solves with [Poisson's equation](https://en.wikipedia.org/wiki/Discrete_Poisson_equation) for a discretized 2D grid
-  - Applies [Dirichlet boundary conditions](https://en.wikipedia.org/wiki/Dirichlet_boundary_condition), where boundaries are fixed to the permittivity of free-space
-- If `[--enable-fixed-charges]` is set, then charges are fixed, meaning electrostatic potential is constant
-  - Fixed charges have less variation in the output, slower convergence, but faster simulation times overall
-  - Solves with [Laplace's equation](https://en.wikipedia.org/wiki/Laplace%27s_equation#Electrostatics), which is derived from Poisson 
-  - Applies [Neumann boundary conditions](https://en.wikipedia.org/wiki/Neumann_boundary_condition), where boundaries reflect the behavior of inner cells
+### Material Map Generation
+1. Initial conductive mask:
+   - `--conductive-cell-ratio`: fixed % of conductive cells
+   - `--conductive-cell-prob`: probabilistic cell assignment
+2. Cellular automata + connectivity algorithm applied
+3. Add conductive materials:
+   - `--conductive-material-count`: fixed count
+   - `--conductive-material-range`: random count from range
+4. Fill remaining cells with isolating materials
+5. Border set to free space
 
-### Material Map Generation Notes:
-1. Initial conductive mask is created with options:
-  - `[--conductive-cell-ratio]`: Proportion of cells that should be conductive 
-    - Samples will have a consistent number of conductive cells
-    - Locations of conductive cells are randomized based on RNG seed
-  - `[--conductive-cell-prob]`: Probability a cell is conductive or not 
-    - Samples will have a variable number of conductive cells based on probability and RNG seed
-    - Locations of conductive cells determined by the probability and RNG seed
-2. Cellular automata + Connecting algorithm is applied to the initial conductive mask
-3. Conductive materials are added to the final conductive mask
-  - `[--conductive-material-count]`: Static count of conductor materials to add 
-    - Samples will have a consistent number of conductive material types
-  - `[--conductive-material-range]`: Range to randomly select count of conductor materials to add
-    - Samples will have a variable number of conductive material types
-  - Selected conductive materials are randomized based on RNG seed for both options
-4. Remaining non-border cells are filled randomly based on RNG seed with isolating materials
-5. The borders are set to `free space` to create an isolated environment to start with
+### Reproducibility
+- Samples generated via `[--min-seed]` to `[--max-seed]`
+- Simulations reproducible with same seed + arguments
+  - Args saved to: `arguments_<original_datafile>.json`
 
-### Reproducibility Notes:
-- Total simulation samples is based on seed range:
-  - `[--min-seed]` and `[--max-seed]`
-- Each seed can be used to reproduce a simulation given the same arguments
-  - Input arguments are saved to a JSON file saved to: `path/to/<output_folder_name>/arguments_<original_datafile_name>.json`
 
 ### Sample simulation results for free charges
-![Free Charges Sample Plot 1](sample_plots/electrostatic_poisson_32x32_48.png)
-![Free Charges Sample Plot 2](sample_plots/electrostatic_poisson_32x32_67.png)
-![Free Charges Sample Plot 3](sample_plots/electrostatic_poisson_32x32_69.png)
+![Free Charges Sample Plot 1](sample_plots/normalized_electrostatic_poisson_32x32_5_images.png)
+![Free Charges Sample Plot 2](sample_plots/normalized_electrostatic_poisson_32x32_20_images.png)
+![Free Charges Sample Plot 3](sample_plots/normalized_electrostatic_poisson_32x32_35_images.png)
+![Free Charges Sample Plot 4](sample_plots/normalized_electrostatic_poisson_32x32_50_images.png)
 
 ### Sample simulation results for fixed charges
-![Fixed Charges Sample Plot 1](sample_plots/electrostatic_laplace_32x32_48.png)
-![Fixed Charges Sample Plot 2](sample_plots/electrostatic_laplace_32x32_67.png)
-![Fixed Charges Sample Plot 3](sample_plots/electrostatic_laplace_32x32_69.png)
-*Note: Due to the color map boundaries being set to the global min/max values across a set of simulations, images that have tiny differences between cells will appear as one color. Hence, the Final Potential Maps shown above.*
+![Fixed Charges Sample Plot 1](sample_plots/normalized_electrostatic_laplace_32x32_5_images.png)
+![Fixed Charges Sample Plot 2](sample_plots/normalized_electrostatic_laplace_32x32_20_images.png)
+![Fixed Charges Sample Plot 3](sample_plots/normalized_electrostatic_laplace_32x32_35_images.png)
+![Fixed Charges Sample Plot 4](sample_plots/normalized_electrostatic_laplace_32x32_50_images.png)
+*Note: Due to global  color map boundaries, images that have tiny differences will appear as one color.*

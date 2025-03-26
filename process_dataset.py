@@ -16,7 +16,7 @@ def main():
     simvp_format = args.simvp_format
     dataset_file_path = args.dataset_path
     sample_plots = args.sample_plots
-
+    plot_states = args.plot_states
     dataset_folder_path = path.abspath(path.dirname(dataset_file_path))
     dataset_file_name = path.basename(dataset_file_path)
 
@@ -56,15 +56,16 @@ def main():
 
     if new_dataset_file_path:
         plot_dataset_file = new_dataset_file_path
-        plot_extrema_values = {key: (0.0, 1.0) for key in global_extrema_values['image'].keys()}
+        global_extrema_values = {key: (0.0, 1.0) for key in global_extrema_values['image'].keys()}
     else:
         plot_dataset_file = dataset_file_path
-        plot_extrema_values = global_extrema_values['image']
+        global_extrema_values = global_extrema_values['image']
 
     plot_prefix = "_".join(path.basename(plot_dataset_file).split('_')[:-1])
     plot_path = create_folder(path.join(output_folder_path, "plots"))
     sample_dicts = read_from_hdf5(plot_dataset_file, sample_size=sample_plots)
-    plot_simulation_samples(sample_dicts, f"{plot_path}/{plot_prefix}", plot_extrema_values, simvp_format)
+    plot_simulation_samples(sample_dicts, plot_path, plot_prefix, global_extrema_values, plot_states=plot_states)
+
 
 
 if __name__ == "__main__":

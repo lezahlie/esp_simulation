@@ -7,11 +7,12 @@ root_path=$(dirname "$script_path")
 program_name=process_dataset
 
 prog_args=(
-    "--dataset-path=hdf5_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5"  
+    "--dataset-path=hdf5_dataset_example/electrostatic_poisson_32x32_1-50.hdf5"  
+    # "--disable-normalization"
     "--sample-plots=50"
-    "--disable-normalization"
+    # "--plot-states"
     #"--output-path=path/to/dir"  
-    #"--output-folder=hdf5_dataset_plots"   
+    #"--output-folder=hdf5_dataset_plots"
     "--debug"
 )
 
@@ -23,9 +24,8 @@ for arg in "${prog_args[@]}"; do
 done
 
 echo $div
-echo "Started creating shape maps"
+
 
 python3 $root_path/$program_name.py ${prog_args[@]}
 
 echo $div
-echo "Finished creating shape maps"
