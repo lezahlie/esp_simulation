@@ -121,7 +121,8 @@ python3 process_dataset.py \
   --disable-normalization \               # Prevent default behavior to normalize all images and scalars 
 
   # 4. Visualization options
-  --sample-plots <int>                   # Number of samples to plot from the [--dataset-path] hdf5 file
+  --sample-plots <int> \                  # Number of samples to plot from the [--dataset-path] hdf5 file
+  --plot-states                           # Option to plot intermediate states, if saved in created dataset
 ```
 
 ### Example run to normalize and reformat for SimVP dataset 
@@ -176,7 +177,7 @@ python3 process_dataset.py \
   - **Array groups** (`mask`, `image`): stored as datasets
 - Normalization:
   - Only `image` and `metric` are normalized
-  - Extrema saved to: `global_extrema_hdf5_<original_datafile>.json`
+  - Global extrema saved to: `global_extrema_hdf5_<original_datafile>.json`
 
 ### SimVP Format
 - Target format for: https://github.com/drewg02/OpenSTL.git
@@ -184,7 +185,7 @@ python3 process_dataset.py \
   - Files:
     - `0.npy`: Input (3-channel): Initial Potential, Permittivity, Charge
     - `1.npy`: Output (1-channel): Final Potential
-- Extrema saved to: `global_extrema_npy_<original_datafile>.json`
+- Global extrema saved to: `global_extrema_npy_<original_datafile>.json`
 
 ### Solver Notes
 - Default: *free charges* (Poisson’s equation + Dirichlet BCs)
@@ -212,14 +213,14 @@ python3 process_dataset.py \
 
 
 ### Sample simulation results for free charges
-![Free Charges Sample Plot 1](sample_plots/normalized_electrostatic_poisson_32x32_5_images.png)
-![Free Charges Sample Plot 2](sample_plots/normalized_electrostatic_poisson_32x32_20_images.png)
-![Free Charges Sample Plot 3](sample_plots/normalized_electrostatic_poisson_32x32_35_images.png)
+![Free Charges Sample Plot 1](sample_plots/normalized_electrostatic_poisson_32x32_20_images.png)
+![Free Charges Sample Plot 2](sample_plots/normalized_electrostatic_poisson_32x32_35_images.png)
+![Free Charges Sample Plot 3](sample_plots/normalized_electrostatic_poisson_32x32_45_images.png)
 ![Free Charges Sample Plot 4](sample_plots/normalized_electrostatic_poisson_32x32_50_images.png)
 
 ### Sample simulation results for fixed charges
-![Fixed Charges Sample Plot 1](sample_plots/normalized_electrostatic_laplace_32x32_5_images.png)
-![Fixed Charges Sample Plot 2](sample_plots/normalized_electrostatic_laplace_32x32_20_images.png)
-![Fixed Charges Sample Plot 3](sample_plots/normalized_electrostatic_laplace_32x32_35_images.png)
+![Fixed Charges Sample Plot 1](sample_plots/normalized_electrostatic_laplace_32x32_20_images.png)
+![Fixed Charges Sample Plot 2](sample_plots/normalized_electrostatic_laplace_32x32_35_images.png)
+![Fixed Charges Sample Plot 3](sample_plots/normalized_electrostatic_laplace_32x32_45_images.png)
 ![Fixed Charges Sample Plot 4](sample_plots/normalized_electrostatic_laplace_32x32_50_images.png)
-*Note: Due to global  color map boundaries, images that have tiny differences will appear as one color.*
+*Note: Due to global  color map boundaries, images with tiny differences appear as one color.*

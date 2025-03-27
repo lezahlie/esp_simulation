@@ -8,11 +8,12 @@ program_name=process_dataset
 
 prog_args=(
     "--dataset-path=hdf5_dataset_example/electrostatic_poisson_32x32_1-100.hdf5"  
-    "--sample-plots=20"
-    "--plot-states"
     # "--disable-normalization"
+    "--sample-plots=50"
+    # "--plot-states"
     # "--output-path=path/to/dir"  
     # "--output-folder=hdf5_dataset_plots"
+    # "--simvp-format" 
     "--debug"
 )
 

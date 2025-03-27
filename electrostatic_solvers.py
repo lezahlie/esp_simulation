@@ -1,9 +1,11 @@
 from setup_logger import setup_logger
 logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
 from utilities import np, ndimg 
-from electrostatic_mappers import generate_initial_potential_map, neumann_boundary_conditions, dirichlet_boundary_conditions
+from electrostatic_mappers import epsilon_0, generate_initial_potential_map, neumann_boundary_conditions, dirichlet_boundary_conditions
 
-
+# Poisson's equation using the Gauss–Seidel method
+# https://en.wikipedia.org/wiki/Discrete_Poisson_equation
+# https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method
 def solve_poisson_equation(potential_map, charge_distribution, permittivity_map, 
                         max_iterations=1000, convergence_tolerance=1e-6, save_states=False):
     iteration = 0
@@ -35,7 +37,9 @@ def solve_poisson_equation(potential_map, charge_distribution, permittivity_map,
 
     return potential_map, intermediate_states, (max_delta, converged, iteration) 
 
-
+# Follows Laplace's equation using the Gauss–Seidel method
+# https://en.wikipedia.org/wiki/Laplace%27s_equation
+# https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method
 def solve_laplace_equation(potential_map, max_iterations=1000, convergence_tolerance=1e-6, save_states=False):
     iteration = 0
     converged = False
@@ -65,7 +69,9 @@ def solve_laplace_equation(potential_map, max_iterations=1000, convergence_toler
 
     return potential_map, intermediate_states, (max_delta, converged, iteration) 
 
-
+# Computes charge distribution from inverse of Poisson's equation
+# by applying the Laplace operator to the potential map 
+# https://en.wikipedia.org/wiki/Green%27s_function_for_the_three-variable_Laplace_equation
 def laplacian_operator_charge_distribution(potential_map, permittivity_map):
     laplacian = np.zeros_like(potential_map)
     for i in range(1, potential_map.shape[0] - 1):
@@ -81,7 +87,7 @@ def generate_smooth_potential(shape, kernel_size=5):
     smoothed_potential = ndimg.convolve(random_noise, kernel, mode='reflect')
     return smoothed_potential
 
-
+# Follows gauss's law for relative values: https://en.wikipedia.org/wiki/Gauss%27s_law
 def generate_free_charge_distribution(conductive_material_mask, permittivity_map, kernel_size=5, expand_radius=1):
     # apply 4-neighborhood around conductive cells
     expanded_mask = ndimg.binary_dilation(conductive_material_mask, iterations=expand_radius)
@@ -104,7 +110,7 @@ def generate_free_charge_distribution(conductive_material_mask, permittivity_map
     div_D_y = np.gradient(D_y, axis=1)
 
     # compute absolute free charge density 
-    rho_free = np.abs(div_D_x + div_D_y)
+    rho_free = div_D_x + div_D_y
     
     # restrict free charges to conductive regions
     free_charge_distribution = np.where(conductive_material_mask, rho_free, 0)

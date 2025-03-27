@@ -14,15 +14,15 @@ prog_args=(
     "--seed-step=25"
     "--ntasks=2"
     "--image-size=32"
-    "--conductive-cell-prob=0.7"
-    "--conductive-material-range=1,6"
+    "--conductive-cell-prob=0.75"
+    "--conductive-material-range=1,10"
     "--max-iterations=3000"
     # "--conductive-cell-ratio=0.5"
     # "--conductive-material-count=6"
     # "--convergence-tolerance=1e-8"
     # "--enable-fixed-charges"
     # "--enable-absolute-permittivity"
-    "--save-intermediate-states"
+    # "--save-intermediate-states"
     "--debug"
 )
 
