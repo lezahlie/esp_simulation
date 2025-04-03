@@ -334,10 +334,8 @@ python process_dataset.py \
 
    - `--conductive-material-count`: assigns a fixed number of material IDs  
    - `--conductive-material-range`: selects a random count from a specified range
-  
-    <details>
-    <summary> SHOW CONDUCTIVE MATERIAL DATA </summary> 
 
+      #### Conductive Materials
       | Conductor       | Relative Permittivity |
       |-----------------|------------------------|
       | aluminum        | 3.5                    |
@@ -353,35 +351,27 @@ python process_dataset.py \
       | tantalum        | 35.0                   |
       | iron            | 50.0                   |
 
-    </details>
+
 
 4. **Fill remaining cells** with *insulating* materials
-   
-      <details>
-      <summary> SHOW INSULATED MATERIAL DATA </summary> 
 
-      | Insulation   | Relative Permittivity  |
-      |--------------|------------------------|
-      | teflon       | 2.1                    |
-      | polyethylene | 2.4                    |
-      | nylon        | 3.6                    |
-      | epoxy resin  | 4.2                    |
-      | FR4          | 4.8                    |
-      | glass        | 6.5                    |
-      | rubber       | 9.5                    |
+    #### Insulating Materials
+    | Insulator    | Relative Permittivity  |
+    |--------------|------------------------|
+    | teflon       | 2.1                    |
+    | polyethylene | 2.4                    |
+    | nylon        | 3.6                    |
+    | epoxy resin  | 4.2                    |
+    | FR4          | 4.8                    |
+    | glass        | 6.5                    |
+    | rubber       | 9.5                    |
 
-      </details>
-
-5. **Set boundary cells** to free space (vacuum/air)
+1. **Set boundary cells** to free space (vacuum/air)
   
-    <details>
-    <summary> SHOW FREE SPACE DATA </summary> 
-
+    #### Free Space
     | Free Space | Relative Permittivity  |
     |------------|------------------------|
     | air/vacuum | 1.0                    |
-
-    </details>
 
 
 ## Solver Notes
