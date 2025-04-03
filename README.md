@@ -211,7 +211,7 @@ python process_dataset.py \
   <details>
   <summary> SHOW RECORD DATA STRUCTURE </summary> 
 
-  ```json
+  ```plaintext
     GROUP "record_<#>" {
       GROUP "image" {
           DATASET "charge_distribution" {
