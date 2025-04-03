@@ -408,7 +408,7 @@ python process_dataset.py \
   - Relative charge values are computed using [Gauss’s law](https://en.wikipedia.org/wiki/Gauss%27s_law)
 - Resulting potential $\phi_t$ is expressed in **relative units** (not physical voltages)
 
-$$
+```math
 \begin{align}
 \phi^{t} &:= \text{electrostatic potential at iteration } t \\
 \rho &:= \text{charge distribution} \\
@@ -417,7 +417,7 @@ n &:= 4 \quad \text{(number of neighbors)} \\
 i,j &:= \text{cell located at } i,j \\
 \phi^{t}_{i,j} &= \dfrac{\rho_{i,j}}{\varepsilon_{i,j}} + \dfrac{1}{n} \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right)
 \end{align}
-$$
+```
 
 ---
 
@@ -432,7 +432,9 @@ $$
 - Charge distribution $\rho$ is inferred from the resulting potential  
 - Both $\rho$ and $\phi_t$ are expressed in **relative units** 
 
-$$
+
+
+```math
 \begin{align}
 \phi^{t} &:= \text{electrostatic potential at iteration } t \\
 \rho &:= \text{charge distribution} \\
@@ -442,4 +444,4 @@ i,j &:= \text{cell located at } i,j \\
 \phi^{t}_{i,j} &= \frac{1}{n} \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right) \\
 \rho_{i,j} &= \varepsilon_{i,j} \cdot \left[ \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right) - \left( n \cdot \phi^{t}_{i,j} \right) \right]
 \end{align}
-$$
+```
