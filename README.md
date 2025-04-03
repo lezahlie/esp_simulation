@@ -89,7 +89,7 @@ python create_dataset.py \
 ```
 > Outputs: ./hdf5_dataset_example_1/electrostatic_poisson_32x32_1-1000.hdf5
 
-### Example 1: Create a dataset with Laplace's solver (fixed charges)
+### Example 2: Create a dataset with Laplace's solver (fixed charges)
 
 ```bash
 python create_dataset.py \
@@ -160,7 +160,7 @@ python process_dataset.py \
 ```
 > Outputs: ./esp_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5
 
-### Example 3: Plot 25 samples from an existing HDF5 datasets
+### Example 3: Plot 25 samples from existing HDF5 datasets
 
 ```bash
 python process_dataset.py \
