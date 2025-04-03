@@ -179,15 +179,18 @@ python process_dataset.py \
 > Plot files are saved as: `normalized_electrostatic_poisson_32x32_<seed>.png` 
 
 
-### Samples from simulating Poisson's Solver (free charges)
+## Sample Images
+
+### Poisson's Solver (free charges)
 ![Free Charges Sample Plot 1](images/normalized_electrostatic_poisson_32x32_14.png)
 ![Free Charges Sample Plot 2](images/normalized_electrostatic_poisson_32x32_22.png)
 ![Free Charges Sample Plot 3](images/normalized_electrostatic_poisson_32x32_25.png)
 ![Free Charges Sample Plot 4](images/normalized_electrostatic_poisson_32x32_31.png)
 ![Free Charges Sample Plot 5](images/normalized_electrostatic_poisson_32x32_46.png)
 
+---
 
-### Sample from simulating Laplace's solver (fixed charges)
+### Laplace's solver (fixed charges)
 ![Fixed Charges Sample Plot 1](images/normalized_electrostatic_laplace_32x32_14.png)
 ![Fixed Charges Sample Plot 2](images/normalized_electrostatic_laplace_32x32_22.png)
 ![Fixed Charges Sample Plot 3](images/normalized_electrostatic_laplace_32x32_25.png)
@@ -195,8 +198,8 @@ python process_dataset.py \
 ![Fixed Charges Sample Plot 5](images/normalized_electrostatic_laplace_32x32_46.png)
 *Note: Images with small variations may appear uniform due to normalization across a global color map range.*
 
-## Dataset Notes
 
+## Dataset Notes
 
 ### HDF5 Format
 - Each simulation is saved to a HDF5 group named `record_<id>`
@@ -281,6 +284,8 @@ python process_dataset.py \
     }
   ```
   </details>
+
+---
 
 ### SimVP Format
 - Target format for: https://github.com/drewg02/OpenSTL.git
@@ -386,10 +391,10 @@ python process_dataset.py \
 - **2D Inputs**
   - Charge distribution → $\rho$ (initial condition)
   - Relative permittivity map → $\varepsilon$ (initial condition)
-  - Initial potential → $\phi_0$ (boundary condition)
+  - Initial potential → $\phi^0$ (boundary condition)
 
 - **2D Output**
-  - Final potential after $t$ iterations → $\phi_t$
+  - Final potential after $t$ iterations → $\phi^t$
 
 ---
 
@@ -405,11 +410,12 @@ python process_dataset.py \
 
 $$
 \begin{align}
-\phi_t &:= \text{potential after iteration } t \\
+\phi^{t} &:= \text{electrostatic potential at iteration } t \\
 \rho &:= \text{charge distribution} \\
 \varepsilon &:= \text{relative permittivity} \\
 n &:= 4 \quad \text{(number of neighbors)} \\
-\phi_{i,j} &= \dfrac{1}{n} \left( \phi_{i-1,j} + \phi_{i+1,j} + \phi_{i,j-1} + \phi_{i,j+1} \right) + \dfrac{\rho_{i,j}}{\varepsilon_{i,j}}
+i,j &:= \text{cell located at } i,j \\
+\phi^{t}_{i,j} &= \dfrac{\rho_{i,j}}{\varepsilon_{i,j}} + \dfrac{1}{n} \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right)
 \end{align}
 $$
 
@@ -424,15 +430,16 @@ $$
 - Solved in-place using the [Gauss–Seidel iterative method](https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method)
 - A synthetic potential map is assumed as the initial condition
 - Charge distribution $\rho$ is inferred from the resulting potential  
-- Both $\rho$ and $\phi_t$ are expressed in **relative units**
+- Both $\rho$ and $\phi_t$ are expressed in **relative units** 
 
 $$
 \begin{align}
-\phi_t &:= \text{potential after iteration } t \\
+\phi^{t} &:= \text{electrostatic potential at iteration } t \\
 \rho &:= \text{charge distribution} \\
 \varepsilon &:= \text{relative permittivity} \\
 n &:= 4 \quad \text{(number of neighbors)} \\
-\phi_{i,j} &= \dfrac{1}{n} \left( \phi_{i-1,j} + \phi_{i+1,j} + \phi_{i,j-1} + \phi_{i,j+1} \right) \\
-\rho_{i,j} &= \varepsilon_{i,j} \cdot \left( \phi_{i-1,j} + \phi_{i+1,j} + \phi_{i,j-1} + \phi_{i,j+1} \right) - n \cdot \phi_{i,j}
+i,j &:= \text{cell located at } i,j \\
+\phi^{t}_{i,j} &= \frac{1}{n} \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right) \\
+\rho_{i,j} &= \varepsilon_{i,j} \cdot \left[ \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right) - \left( n \cdot \phi^{t}_{i,j} \right) \right]
 \end{align}
 $$
