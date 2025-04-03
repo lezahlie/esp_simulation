@@ -2,14 +2,17 @@ import argparse as ap
 import utilities as util
 from electrostatic_mappers import conductive_indices
 
+
 executable_groups = {
     "electrostatic_simulation.py": ["simulation", "output"],
     "create_dataset.py": ["simulation", "output", "multiprocess"],
     "process_dataset.py": ["dataset", "output"]
 }
 
+
 def parse_tuple(value):
     return tuple(map(int, value.strip("()").split(",")))
+
 
 def add_multiprocess_group(parser, file_name):
     group = parser.add_argument_group('multi-process options')
@@ -54,8 +57,9 @@ def add_simulation_group(parser):
                     help="Maximum allowed iterations to run electrostatic potential solvers | default: 3000")
     group.add_argument('-e', '--convergence-tolerance', dest='convergence_tolerance', type=float, default=1e-6,
                     help="Tolerance for convergence; reached when the maximum change between iterations falls below this value | default: 1E-6")
-    group.add_argument('-w', '--save-intermediate-states', dest='save_states', action='store_true',
+    group.add_argument('-w', '--save-states', dest='save_states', action='store_true',
                 help="Enables saving states, where iteration is a power of two | default: Off")
+
 
 def check_simulation_args(args):
     if not (4 < args.image_size < 1025):
@@ -109,7 +113,8 @@ def check_output_args(args, filename):
         raise ValueError(f"OUTPUT_FOLDER '{args.output_folder}' must have a length between [1, 128]")
     if filename == 'create_dataset.py' and args.output_folder is None:
         raise ValueError(f"OUTPUT_FOLDER '{args.output_folder}' is required for new datset creation")
-    
+
+
 def add_dataset_group(parser):
     group = parser.add_argument_group('dataset options')
 
@@ -126,7 +131,8 @@ def add_dataset_group(parser):
                     help="Optional number of samples to plot; No samples are plotted if set to '0' | default: 0")
     
     group.add_argument('-a', '--plot-states', dest='plot_states', action='store_true', 
-                        help="Option to plot initial, intermediate, and final states; Requires passing [--save-intermediate-states] to create_dataset.py; | default: Off")
+                        help="Option to plot initial, intermediate, and final states; Requires passing [--save-states] to create_dataset.py; | default: Off")
+
 
 def check_dataset_args(args):
     if hasattr(args, 'dataset_path') and not util.path.isfile(args.dataset_path) or '.hdf5' not in args.dataset_path:
@@ -142,7 +148,6 @@ def check_dataset_args(args):
         raise ValueError(f"No options are enabled to normalize, format, or plot samples...")
 
 
-
 def check_args(parser, file_name):
     args = parser.parse_args()
 
@@ -154,7 +159,6 @@ def check_args(parser, file_name):
         check_output_args(args, file_name)
     if "dataset" in executable_groups[file_name]:
         check_dataset_args(args)
-
     return args
 
 

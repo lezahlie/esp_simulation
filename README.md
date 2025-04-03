@@ -44,61 +44,42 @@ python3 create_dataset.py \
   --convergence-tolerance 1e-6 \          # Tolerance for determining when solution has converged
   --enable-fixed-charges  \               # Charges are fixed instead of free (less variation, different solver)
   --enable-absolute-permittivity          # Alternative to using dielectric constants (uncommon, can ignore)
-  --save-intermediate-states              # Saves all intermediate potential map states (optional, adds overhead)
+  --save-states                           # Saves all intermediate potential map states (optional, adds overhead)
 ```
 
-### Example runs with minimal options for creating a dataset
+### Example dataset creation from simulating free charges (Poisson's Solver)
 
 ```bash
-# Outputs: ./hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5
 python3 create_dataset.py \
-  --output-folder=hdf5_dataset_1 \
+  --output-folder=hdf5_dataset_example \
   --ntasks=1 \
   --min-seed=1 \                 
   --max-seed=1000 \                    
   --seed-step=100 \ 
   --image-size=32 \ 
-  --max-iterations=2500 \
-  --conductive-cell-ratio=0.65 \ 
-  --conductive-material-count=5 
+  --max-iterations=2000 \
+  --conductive-cell-prob=0.7 \ 
+  --conductive-material-range=1,10 
 
-# Outputs: ./hdf5_dataset_2/electrostatic_poisson_32x32_500-1500.hdf5
+# Outputs: ./hdf5_dataset_example_1/electrostatic_poisson_32x32_1-1000.hdf5
+```
+
+### Example dataset creation from simulating fixed charges (Laplace's solver)
+
+```bash
 python3 create_dataset.py \
-  --output-folder=hdf5_dataset_2 \
+  --output-folder=hdf5_dataset_example \
   --ntasks=2 \
-  --min-seed=500 \                 
-  --max-seed=1500 \                    
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=2500 \
-  --conductive-cell-prob=0.5 \ 
-  --conductive-material-range=1,3 
-
-# Outputs: ./hdf5_dataset_3/electrostatic_laplace_32x32_2500-5100.hdf5
-python3 create_dataset.py \
-  --output-folder=hdf5_dataset_3 \
-  --ntasks=3 \
-  --min-seed=2500 \                 
-  --max-seed=5100 \                    
+  --min-seed=1 \                 
+  --max-seed=1000 \                    
   --seed-step=100 \ 
   --image-size=32 \ 
   --max-iterations=3000 \
-  --conductive-cell-prob=0.5 \ 
-  --conductive-material-count=1 \
-  --enable-fixed-charges 
+  --conductive-cell-ratio=0.5 \ 
+  --conductive-material-count=5
+  --enable-fixed-charges
 
-# Outputs: ./hdf5_dataset_4/electrostatic_laplace_32x32_100-1500.hdf5
-python3 create_dataset.py \
-  --output-folder=hdf5_dataset_4 \
-  --ntasks=4 \
-  --min-seed=100 \                 
-  --max-seed=1500 \                    
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=3000 \
-  --conductive-cell-ratio=0.25 \ 
-  --conductive-material-range=1,10 \
-  --enable-fixed-charges 
+# Outputs: ./hdf5_dataset_example_2/electrostatic_laplace_32x32_1-1000.hdf5
 ```
 
 ## Normalize dataset, plot samples, or reformat for SimVP
@@ -131,30 +112,30 @@ python3 process_dataset.py \
 python3 process_dataset.py \
     --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
     --output-folder=simvp_example_1 \
-    --simvp-format \
-    --sample-plots=100  # omit for no plots
+    --sample-plots=25 \  # omit for no plots
+    --simvp-format
 
 # Outputs: ./simvp_dataset_1/[simvp formatted structures ...]
 #          ./simvp_dataset_1/plots/[sample plot files ...]
 ```
 
-### Example run to normalize to a HDF5 file
+### Example run to normalize and plot 25 normalized samples (HDF5 format only)
 
 ```bash
 python3 process_dataset.py \
     --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --sample-plots=100  # omit for no plots
+    --sample-plots=25  # omit for no plots
 
 # Outputs: ./hdf5_dataset_1/normalized_electrostatic_poisson_32x32_1-1000.hdf5
 #          ./hdf5_dataset_1/plots/[sample plot files ...]
 ```
 
-### Example run to plot samples only (HDF5 format only)
+### Example run to plot 25 unnormalized samples (HDF5 format only)
 
 ```bash
 python3 process_dataset.py \
     --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --sample-plots=100 \
+    --sample-plots=25 \
     --disable-normalization
 
 # Outputs: /hdf5_dataset_1/plots/[sample plot files ...]
@@ -195,18 +176,19 @@ python3 process_dataset.py \
   - Less variation, faster sim time
   - Charge distribution is derived
 
-### Material Map Generation
+### Material ID Mask Generation
 1. Initial conductive mask:
    - `--conductive-cell-ratio`: fixed % of conductive cells
    - `--conductive-cell-prob`: probabilistic cell assignment
 2. Cellular automata + connectivity algorithm applied
-3. Add conductive materials:
+3. Add *conductive* materials:
    - `--conductive-material-count`: fixed count
    - `--conductive-material-range`: random count from range
-4. Fill remaining cells with isolating materials
-5. Border set to free space
+4. Fill remaining cells with *insulation* materials
+5. Boundary cells are set to free space (vacuum/air)
 
-### Reproducibility
+
+### Reproducibility Notes
 - Samples generated via `[--min-seed]` to `[--max-seed]`
 - Simulations reproducible with same seed + arguments
   - Args saved to: `arguments_<original_datafile>.json`
