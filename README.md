@@ -195,14 +195,16 @@ python3 process_dataset.py \
 
 
 ### Sample simulation results for free charges
-![Free Charges Sample Plot 1](sample_plots/normalized_electrostatic_poisson_32x32_20_images.png)
-![Free Charges Sample Plot 2](sample_plots/normalized_electrostatic_poisson_32x32_35_images.png)
-![Free Charges Sample Plot 3](sample_plots/normalized_electrostatic_poisson_32x32_45_images.png)
-![Free Charges Sample Plot 4](sample_plots/normalized_electrostatic_poisson_32x32_50_images.png)
+![Free Charges Sample Plot 1](sample_plots/normalized_electrostatic_poisson_32x32_14_images.png)
+![Free Charges Sample Plot 2](sample_plots/normalized_electrostatic_poisson_32x32_22_images.png)
+![Free Charges Sample Plot 3](sample_plots/normalized_electrostatic_poisson_32x32_25_images.png)
+![Free Charges Sample Plot 4](sample_plots/normalized_electrostatic_poisson_32x32_31_images.png)
+![Free Charges Sample Plot 5](sample_plots/normalized_electrostatic_poisson_32x32_46_images.png)
 
 ### Sample simulation results for fixed charges
-![Fixed Charges Sample Plot 1](sample_plots/normalized_electrostatic_laplace_32x32_20_images.png)
-![Fixed Charges Sample Plot 2](sample_plots/normalized_electrostatic_laplace_32x32_35_images.png)
-![Fixed Charges Sample Plot 3](sample_plots/normalized_electrostatic_laplace_32x32_45_images.png)
-![Fixed Charges Sample Plot 4](sample_plots/normalized_electrostatic_laplace_32x32_50_images.png)
+![Fixed Charges Sample Plot 1](sample_plots/normalized_electrostatic_laplace_32x32_14_images.png)
+![Fixed Charges Sample Plot 2](sample_plots/normalized_electrostatic_laplace_32x32_22_images.png)
+![Fixed Charges Sample Plot 3](sample_plots/normalized_electrostatic_laplace_32x32_25_images.png)
+![Fixed Charges Sample Plot 4](sample_plots/normalized_electrostatic_laplace_32x32_31_images.png)
+![Fixed Charges Sample Plot 5](sample_plots/normalized_electrostatic_laplace_32x32_46_images.png)
 *Note: Due to global  color map boundaries, images with tiny differences appear as one color.*

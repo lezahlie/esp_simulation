@@ -111,7 +111,6 @@ def generate_free_charge_distribution(conductive_material_mask, permittivity_map
 
     # compute absolute free charge density 
     rho_free = div_D_x + div_D_y
-    rho_free -= np.mean(rho_free)
 
     # restrict free charges to conductive regions
     free_charge_distribution = np.where(conductive_material_mask, rho_free, 0)
