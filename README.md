@@ -315,9 +315,9 @@ python process_dataset.py \
 ### Example Scripts
 - Example Scripts in `example_scripts/`:
   - `create_hdf5_dataset.sh` → `create_dataset.py`: Generates HDF5 dataset from simulation runs
-  - `normalize_hdf5_dataset.sh` → `process_dataset.py`: Normalizes HDF5 dataset; optionally plots samples
-  - `plot_dataset_samples.sh` → `process_dataset.py`: Plots samples from original HDF5 dataset
-  - `reformat_for_simvp.sh` → `process_dataset.py`: Converts HDF5 to SimVP format; optionally plots samples
+  - `normalize_hdf5_dataset.sh` → `process_dataset.py`: Normalizes HDF5 dataset
+  - `plot_dataset_samples.sh` → `process_dataset.py`: Plots samples from original and normalized HDF5 dataset
+  - `reformat_for_simvp.sh` → `process_dataset.py`: Converts HDF5 to SimVP format
 
 
 ## Material Notes
