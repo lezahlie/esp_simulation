@@ -99,7 +99,7 @@ def plot_sample_images(map_list, plot_title, plot_path, nrows = 1):
             
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.suptitle(plot_title, y=0.975)
-    plt.savefig(plot_path)
+    plt.savefig(plot_path, format="png")
     plt.close()
 
 
@@ -132,12 +132,12 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
         plot_title = f"Seed[{random_seed}]: solver {final_state} with max_delta = {max_delta:g} after {total_iterations} iterations" 
 
         plot_folder = path.join(plot_path, f"sample_{random_seed}")
-        plot_file =  create_file_path(plot_folder, f"{plot_prefix}_{random_seed}_images.png")
+        plot_file =  create_file_path(plot_folder, f"{plot_prefix}_{random_seed}.png")
         plot_sample_images(map_list, plot_title, plot_file)
         logger.info(f"Saved sample images plot for seed {random_seed} to: {plot_file}")
         
         if plot_states:
-            new_plot_file =  plot_file.replace("images.png", "states.png")
+            new_plot_file =  plot_file.replace(".png", "_states.png")
             potential_states = {
                 0: sample['image_initial_potential_map'],
                 **{i: sample['image_intermediate_potential_states'][i] 

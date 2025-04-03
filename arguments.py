@@ -16,10 +16,10 @@ def parse_tuple(value):
 
 def add_multiprocess_group(parser, file_name):
     group = parser.add_argument_group('multi-process options')
-    group.add_argument('-t', '--ntasks', dest="num_tasks", type=int, default=1, 
-                    help="Number of tasks (cpu cores) to run in parallel. If multi-threading is enabled, max threads is set to (num_tasks * 2) | default: 1")
+    group.add_argument('--ntasks', dest="num_tasks", type=int, default=1, 
+                    help="Number of parallel tasks (CPU cores). Max threads = 2 x NUM_TASKS if multithreading is on (default: 1)")
     if "simulation" in executable_groups[file_name]:
-        group.add_argument('-k', '--seed-step', dest="seed_step", type=int, default=50, 
+        group.add_argument('--seed-step', dest="seed_step", type=int, default=50, 
                         help="Number of seeds to be processed and written at a time | default: 100")
 
 
@@ -30,35 +30,35 @@ def check_multiprocess_args(args):
 
 def add_simulation_group(parser):
     group = parser.add_argument_group("image generation options")
-    group.add_argument('-s', '--image-size', dest='image_size', type=int, default=32, 
+    group.add_argument('--image-size', dest='image_size', type=int, default=32, 
                     help="Length for one side of 2D image | default: 32")
-    group.add_argument('-a', '--min-seed', dest='min_seed', type=int, default=1, 
+    group.add_argument('--min-seed', dest='min_seed', type=int, default=1, 
                     help="Start seed for generating images from MIN_SEED to MAX_SEED | default: 1")
-    group.add_argument('-b', '--max-seed', dest='max_seed', type=int, default=500, 
+    group.add_argument('--max-seed', dest='max_seed', type=int, default=500, 
                     help="Ending seed for generating images from MIN_SEED to MAX_SEED | default: 100")
     
     ccell_group = group.add_mutually_exclusive_group(required=True)
-    ccell_group.add_argument('-r', '--conductive-cell-ratio', dest='conductive_cell_ratio', type=float,
+    ccell_group.add_argument('--conductive-cell-ratio', dest='conductive_cell_ratio', type=float,
                     help="Proportion of cells that should be conductive (Before cellular automata) | required")
-    ccell_group.add_argument('-p', '--conductive-cell-prob', dest='conductive_cell_ratio', type=float,
+    ccell_group.add_argument('--conductive-cell-prob', dest='conductive_cell_ratio', type=float,
                     help="Probability a cells will be conductive or not (Before cellular automata) | required")
 
     ccount_group = group.add_mutually_exclusive_group(required=True)
-    ccount_group.add_argument('-j', '--conductive-material-range', dest='conductive_material_range', type=parse_tuple,
+    ccount_group.add_argument('--conductive-material-range', dest='conductive_material_range', type=parse_tuple,
                     help=f"Range to randomly pick a number of conductive materials; max range = {len(conductive_indices)} | required")
-    ccount_group.add_argument('-c', '--conductive-material-count', dest='conductive_material_count', type=int,
+    ccount_group.add_argument('--conductive-material-count', dest='conductive_material_count', type=int,
                     help=f"Static count of total conductive materials; max count = {len(conductive_indices)} | required")
     
-    group.add_argument('-u', '--enable-absolute-permittivity', dest='enable_absolute_permittivity', action='store_true',
-                    help="Enables converting material permittivity from relative to absolute | default: Off")
-    group.add_argument('-l', '--enable-fixed-charges', dest='enable_fixed_charges', action='store_true',
-                help="Enables solving for fixed charges, charges are free by default | default: Off")
-    group.add_argument('-z', '--max-iterations', dest='max_iterations', type=int, default=3000,
+    group.add_argument('--enable-absolute-permittivity', dest='enable_absolute_permittivity', action='store_true',
+                    help="Enables converting material permittivity from relative to absolute | default: false")
+    group.add_argument('--enable-fixed-charges', dest='enable_fixed_charges', action='store_true',
+                help="Enables solving for fixed charges, charges are free by default | default: false")
+    group.add_argument('--max-iterations', dest='max_iterations', type=int, default=3000,
                     help="Maximum allowed iterations to run electrostatic potential solvers | default: 3000")
-    group.add_argument('-e', '--convergence-tolerance', dest='convergence_tolerance', type=float, default=1e-6,
-                    help="Tolerance for convergence; reached when the maximum change between iterations falls below this value | default: 1E-6")
-    group.add_argument('-w', '--save-states', dest='save_states', action='store_true',
-                help="Enables saving states, where iteration is a power of two | default: Off")
+    group.add_argument('--convergence-tolerance', dest='convergence_tolerance', type=float, default=1e-6,
+                    help="Convergence threshold, simulation stops when the max delta between states falls below this value (default: 1e-6)")
+    group.add_argument('--save-states', dest='save_states', action='store_true',
+                help="Enables saving states, where iteration is a power of two | default: false")
 
 
 def check_simulation_args(args):
@@ -100,9 +100,9 @@ def check_simulation_args(args):
 
 def add_output_group(parser):
     group = parser.add_argument_group('output path options')
-    group.add_argument('-o', '--output-path', dest='output_path', type=str, default=util.path.dirname(util.path.abspath(__file__)),
+    group.add_argument('--output-path', dest='output_path', type=str, default=util.path.dirname(util.path.abspath(__file__)),
                         help="Path the the directory to create [--output-folder] and save to | default: current directory")
-    group.add_argument('-f', '--output-folder', dest='output_folder', type=str,
+    group.add_argument('--output-folder', dest='output_folder', type=str,
                         help="Output folder name to create and save simulation data to | default: esp_dataset")
 
 
@@ -118,20 +118,20 @@ def check_output_args(args, filename):
 def add_dataset_group(parser):
     group = parser.add_argument_group('dataset options')
 
-    group.add_argument('-i', '--dataset-path', dest='dataset_path', type=str, default='.',
+    group.add_argument('--dataset-path', dest='dataset_path', type=str, default='.',
                         help="Path the the input dataset to read and process | default: current directory")
 
-    group.add_argument('-w', '--disable-normalization', dest='normalize',  action='store_false', 
-                    help="Option to disable normalizing simulation outputs with a min max scaler | default: Off")
-                    
-    group.add_argument('-v', '--simvp-format', dest='simvp_format', action='store_true',
-                    help="Option to save dataset formatted for SimVP | default: Off")
+    group.add_argument('--normalize', dest='normalize',  action='store_true', 
+                    help="Option to normalize simulation inputs and outputs to [0, 1] using min-max scaling | default: false")
+
+    group.add_argument('--simvp-format', dest='simvp_format', action='store_true',
+                    help="Option to save dataset formatted for SimVP | default: false")
     
-    group.add_argument('-g', '--sample-plots', dest='sample_plots', type=int, default=0,
-                    help="Optional number of samples to plot; No samples are plotted if set to '0' | default: 0")
+    group.add_argument('--sample-plots', dest='sample_plots', type=int, default=0,
+                    help="Optional number of samples to plot; No samples are plotted if set to 0 | default: 0")
     
-    group.add_argument('-a', '--plot-states', dest='plot_states', action='store_true', 
-                        help="Option to plot initial, intermediate, and final states; Requires passing [--save-states] to create_dataset.py; | default: Off")
+    group.add_argument('--plot-states', dest='plot_states', action='store_true', 
+                        help="Option to plot intermediate simulation states; Requires passing [--save-states] to create_dataset.py | default: false")
 
 
 def check_dataset_args(args):
@@ -166,7 +166,7 @@ def process_args(exe_file):
     file_name = util.path.basename(exe_file)
     parser = ap.ArgumentParser(description="Electro Static Potential Simulation")
     parser.add_argument('-d', '--debug', dest='debug_on', action='store_true', 
-                        help="Enables logging with debug level verbosity | default: off")
+                        help="Enables logging with debug level verbosity | default: false")
 
     if "dataset" in executable_groups[file_name]:
         add_dataset_group(parser)

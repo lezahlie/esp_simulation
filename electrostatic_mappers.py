@@ -180,7 +180,7 @@ def neumann_boundary_conditions(potential_map):
     potential_map[:, -1] = potential_map[:, -2]  
     return potential_map
 
-# https://en.wikipedia.org/wiki/Dirichlet_problem
+# https://en.wikipedia.org/wiki/Dirichlet_boundary_condition
 def dirichlet_boundary_conditions(potential_map, fixed_value=material_lookup[0][PERMITTIVITY_TYPE]):
     potential_map[0, :] = fixed_value   
     potential_map[-1, :] = fixed_value   
