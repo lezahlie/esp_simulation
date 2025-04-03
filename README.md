@@ -101,7 +101,7 @@ python create_dataset.py \
   --image-size=32 \ 
   --max-iterations=3000 \
   --conductive-cell-ratio=0.5 \ 
-  --conductive-material-count=5
+  --conductive-material-count=5 \
   --enable-fixed-charges
 ```
 > Outputs: ./hdf5_dataset_example_2/electrostatic_laplace_32x32_1-1000.hdf5
