@@ -5,13 +5,10 @@ from electrostatic_mappers import *
 from electrostatic_metrics import *
 from electrostatic_solvers import compute_electrostatic_potential
 from connect_materials import connect_cellular_automata_shape
-from plot_samples import plot_simulation_samples
 
-
-def run_electrostatic_simulation(simulation_config: dict, seed: int = None, images_only:bool=False):
+def run_electrostatic_simulation(simulation_config: dict, seed: int = None, images_only:bool=False, save_states:bool=False):
     if seed:
         np.random.seed(seed)
-
 
     conductive_cell_ratio = simulation_config.get('conductive_cell_ratio', None)
     conductive_cell_prob = simulation_config.get('conductive_cell_prob', None)
@@ -21,7 +18,6 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
     max_iterations = simulation_config.get('max_iterations', 2000)
     convergence_tolerance = simulation_config.get('convergence_tolerance', 1e-6)
     voltage_range = simulation_config.get('fixed_voltage_range', None) 
-
 
     mask_dict = {}
     # material ternary mask of categories: free_space, insulated, conductors
@@ -46,25 +42,23 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
     # permittivity map of all material permittivity values
     permittivity_value_map = generate_permittivity_value_map(conn_material_index_map)
 
-    # solve for charge_distribution and final_potential_map
-    (initial_potential_map, charge_distribution, final_potential_map), (max_delta, completed, total_iterations) = compute_electrostatic_potential(conductive_material_mask,
-                                                                                                                                                    permittivity_value_map, 
-                                                                                                                                                    max_iterations, 
-                                                                                                                                                    convergence_tolerance,
-                                                                                                                                                    voltage_range)
+    # solve for charge_distribution and potential_states 
+    solver_images, solver_meta = compute_electrostatic_potential(conductive_material_mask,
+                                                                permittivity_value_map, 
+                                                                max_iterations, 
+                                                                convergence_tolerance,
+                                                                voltage_range, 
+                                                                save_states)
+
     meta_dict = {
         "random_seed": seed, 
         "image_size": grid_length,
-        "max_delta":max_delta,
-        "converged": int(completed),
-        "total_iterations":total_iterations
+        **solver_meta
     }
 
     image_dict = {
-        "initial_potential_map": initial_potential_map,
         "permittivity_map": permittivity_value_map,
-        "charge_distribution": charge_distribution,
-        "final_potential_map":  final_potential_map
+        **solver_images
     }
 
     simulation_result = {
@@ -77,14 +71,9 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
         return simulation_result
 
     # compute electric field across x and y
-    electric_field_x, electric_field_y = compute_electric_field(final_potential_map)
-    # compute magnitude of the electric field x and y
-    electric_field_magnitude = np.sqrt(electric_field_x**2 + electric_field_y**2)
+    electric_field_x, electric_field_y = compute_electric_field(image_dict['final_potential_map'])
 
-    image_dict["electric_field_x"] = electric_field_x
-    image_dict["electric_field_y"] = electric_field_y
-    image_dict["electric_field_magnitude"] = electric_field_magnitude
-
+    # @note unused for now to save compute time
 
     # compute electric flux across boundaries
     electric_flux = compute_electric_flux(electric_field_x, electric_field_y)
@@ -93,7 +82,7 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
     total_energy = compute_total_energy(electric_field_x, electric_field_y, permittivity_value_map)
 
     # compute total charge density from charge_distribution
-    total_charge = np.sum(charge_distribution)
+    total_charge = np.sum(image_dict['charge_distribution'])
 
     metric_dict = {
         "electric_flux": electric_flux,
@@ -101,10 +90,11 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
         "total_charge": total_charge
     }
 
-    # @note unused for now
-    #potential_diff_x, potential_diff_y = compute_local_potential_differences(final_potential_map)
-    #global_potential_diff = compute_global_potential_differences(final_potential_map, reference_point=(grid_length // 2, grid_length // 2))
-    #pairwise_potential_diff = compute_pairwise_potential_differences(final_potential_map)
+    # @note unused for now to save compute time
+    # electric_field_magnitude = np.sqrt(electric_field_x**2 + electric_field_y**2)
+    # potential_diff_x, potential_diff_y = compute_local_potential_differences(final_potential_map)
+    # global_potential_diff = compute_global_potential_differences(final_potential_map, reference_point=(grid_length // 2, grid_length // 2))
+    # pairwise_potential_diff = compute_pairwise_potential_differences(final_potential_map)
 
     simulation_result["image"].update(image_dict)
     simulation_result["metric"] = metric_dict
@@ -123,7 +113,8 @@ def generate_electrostatic_maps(min_seed: int=0,
                                 enable_absolute_permittivity=False,
                                 max_iterations=2000,
                                 convergence_tolerance=1e-6,
-                                images_only=False):
+                                images_only=False, 
+                                save_states=False):
 
 
     set_permittivity_type(enable_absolute_permittivity)
@@ -151,7 +142,7 @@ def generate_electrostatic_maps(min_seed: int=0,
 
     simulation_data = []
     for seed in range(min_seed, max_seed + 1):
-        result_dict = run_electrostatic_simulation(simulation_config, seed=seed, images_only=images_only)
+        result_dict = run_electrostatic_simulation(simulation_config, seed=seed, images_only=images_only, save_states=save_states)
         simulation_data.append(result_dict)
         #logger.debug("Simulation Result:\n%s", pprint.pformat(result_dict))
     return simulation_data

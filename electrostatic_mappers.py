@@ -2,31 +2,33 @@ from setup_logger import setup_logger
 logger = setup_logger(__file__, log_stderr=True, log_stdout=True)
 from utilities import np
 
+epsilon_0 = 8.854187817e-12
+
 material_properties = {
     'free': {
         'air_vacuum': {'index': 0, 'relative': 1.0}
     },
     'insulated': {
         'teflon': {'index': 1, 'relative': 2.1},
-        'polyethylene': {'index': 2, 'relative': 2.25},
-        'nylon': {'index': 3, 'relative': 3.4},
-        'epoxy_resin': {'index': 4, 'relative': 3.5},
-        'FR4': {'index': 5, 'relative': 4.5},
-        'glass': {'index': 6, 'relative': 5.0},
-        'rubber': {'index': 7, 'relative': 7.0}
+        'polyethylene': {'index': 2, 'relative': 2.4},
+        'nylon': {'index': 3, 'relative': 3.6},
+        'epoxy_resin': {'index': 4, 'relative': 4.2},
+        'FR4': {'index': 5, 'relative': 4.8},
+        'glass': {'index': 6, 'relative': 6.5},
+        'rubber': {'index': 7, 'relative': 9.5}
     },
     'conductive': {
-        'aluminum': {'index': 8, 'relative': 1.5},
-        'nickel': {'index': 9, 'relative': 1.8},
-        'stainless_steel': {'index': 10, 'relative': 2.0},
-        'bronze': {'index': 11, 'relative': 2.5},
-        'copper_alloy': {'index': 12, 'relative': 2.8},
-        'zinc': {'index': 13, 'relative': 3.0},
-        'tin': {'index': 14, 'relative': 5.0},
-        'lead': {'index': 15, 'relative': 6.0},
-        'graphite': {'index': 16, 'relative': 10.0},
-        'silicon': {'index': 17, 'relative': 11.7},
-        'tantalum': {'index': 18, 'relative': 26.0},
+        'aluminum': {'index': 8, 'relative': 3.5},
+        'nickel': {'index': 9, 'relative': 5.0},
+        'stainless_steel': {'index': 10, 'relative': 6.2},
+        'bronze': {'index': 11, 'relative': 8.0},
+        'copper_alloy': {'index': 12, 'relative': 10.0},
+        'zinc': {'index': 13, 'relative': 12.5},
+        'tin': {'index': 14, 'relative': 15.0},
+        'lead': {'index': 15, 'relative': 18.0},
+        'graphite': {'index': 16, 'relative': 22.0},
+        'silicon': {'index': 17, 'relative': 25.0},
+        'tantalum': {'index': 18, 'relative': 35.0},
         'iron': {'index': 19, 'relative': 50.0}
     }
 }
@@ -46,7 +48,7 @@ def set_permittivity_type(absolute=False):
     update_material_lookups()
 
 
-def update_relative_to_absolute(epsilon_0=8.854e-12):
+def update_relative_to_absolute(epsilon_0=epsilon_0):
     global material_properties
     for _, materials in material_properties.items():
         for _, props in materials.items():
@@ -170,7 +172,7 @@ def set_random_voltage(potential_map, binary_mask, voltage_range=(50, 200)):
 
     return potential_map
 
-
+# https://en.wikipedia.org/wiki/Neumann_boundary_condition
 def neumann_boundary_conditions(potential_map):
     potential_map[0, :] = potential_map[1, :] 
     potential_map[-1, :] = potential_map[-2, :]  
@@ -178,7 +180,7 @@ def neumann_boundary_conditions(potential_map):
     potential_map[:, -1] = potential_map[:, -2]  
     return potential_map
 
-
+# https://en.wikipedia.org/wiki/Dirichlet_boundary_condition
 def dirichlet_boundary_conditions(potential_map, fixed_value=material_lookup[0][PERMITTIVITY_TYPE]):
     potential_map[0, :] = fixed_value   
     potential_map[-1, :] = fixed_value   

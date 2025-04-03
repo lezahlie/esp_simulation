@@ -8,6 +8,7 @@ E=(0, 1)
 S=(1, 0)
 
 FOUR_NEIGHBORHOOD = [N, S, W, E]
+FOUR_KERNEL = np.array([[0, 1, 0], [1, 1, 1],[0, 1, 0]])
 EIGHT_KERNEL = np.array([[1, 1, 1],[1, 0, 1],[1, 1, 1]])
 
 
@@ -25,7 +26,6 @@ def reverse_shape(shape):
     flipped_shape = np.logical_not(shape).astype(int)
     return flipped_shape
 
-
 def manhattan_distance(point_a, point_b):
     return abs(point_a[0] - point_b[0]) + abs(point_a[1] - point_b[1])
 
@@ -39,7 +39,12 @@ def close_to_goal(current, neighbor, goal):
     return neighbor_dist <= current_dist
 
 
-def minimal_flood_fill(grid, start, goal):
+def smooth_path(grid):
+    path_mask = (grid == 1).astype(np.uint8)
+    smoothed = ndimg.binary_closing(path_mask, structure=FOUR_KERNEL)
+    return smoothed.astype(int)
+
+def bfs_flood_fill(grid, start, goal):
     queue = deque([start])
     visited = {start}
     
@@ -47,7 +52,7 @@ def minimal_flood_fill(grid, start, goal):
         curr_xy = queue.popleft()
         grid[curr_xy] = 1
 
-        if (curr_xy) == goal:
+        if curr_xy == goal:
             break
 
         neighbors = [(curr_xy[0] + dx, curr_xy[1] + dy) 
@@ -62,7 +67,8 @@ def minimal_flood_fill(grid, start, goal):
                 visited.add(next_xy)
                 queue.append(next_xy)
 
-    return grid
+    smoothed_paths = smooth_path(grid)
+    grid[smoothed_paths == 1] = 1
 
 
 def find_closest_region(region_a, region_b):
@@ -104,8 +110,9 @@ class UnionFinder:
     def union(self, x, y):
         self.parent[self.find(x)] = self.find(y)
 
-    def count_unqiue(self):
-        return len(set(self.parent.values()))
+    def count_unique(self):
+        return len(set(self.find(i) for i in self.parent))
+
     
 
 def connect_regions(grid):
@@ -135,8 +142,8 @@ def connect_regions(grid):
     for distance, i, j, start, goal in edges:
         if ufind.find(i) != ufind.find(j):
             ufind.union(i, j)
-            minimal_flood_fill(grid, start, goal)
-            if ufind.count_unqiue == 1:
+            bfs_flood_fill(grid, start, goal)
+            if ufind.count_unique() == 1:
                 break
 
     return grid

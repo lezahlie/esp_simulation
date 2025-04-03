@@ -1,31 +1,17 @@
-#!/bin/bash
-div=$(printf '%*s' 100 '' | tr ' ' '-')
+#!/bin/sh
 
-script_path=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+script_path=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root_path=$(dirname "$script_path")
 
-program_name=process_dataset
+plot_dataset()  {
+    local num_samples=$1
+    local dataset_path=$2
 
-prog_args=(
-    "--dataset-path=hdf5_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5"  
-    "--sample-plots=50"
-    "--disable-normalization"
-    #"--output-path=path/to/dir"  
-    #"--output-folder=hdf5_dataset_plots"   
-    "--debug"
-)
+    python $root_path/process_dataset.py \
+    --dataset-path="$dataset_path" \
+    --sample-plots=$num_samples
+}
 
+plot_dataset 25 "$root_path/hdf5_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5"
+plot_dataset 25 "$root_path/hdf5_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5"
 
-echo $div
-echo "$program_name.py arguments:"
-for arg in "${prog_args[@]}"; do
-    echo "$arg"
-done
-
-echo $div
-echo "Started creating shape maps"
-
-python3 $root_path/$program_name.py ${prog_args[@]}
-
-echo $div
-echo "Finished creating shape maps"

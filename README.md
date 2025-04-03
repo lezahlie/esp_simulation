@@ -15,203 +15,206 @@ conda activate esp_env
 
 ### File: `create_dataset.py`
 
-### Example run with all options
-
 ```bash
-python3 create_dataset.py \
-  # 1. Output options
-  --output-path "<path/to/dir>" \         # Ouput directory to save to, defaults to project root
-  --output-folder "<folder_name>" \       # Output folder name, required for dataset creation
-  --debug                                 # Enables DEBUG level logging, otherwise default is INFO
-  
-  # 2. Dataset creation options
-  --min-seed 1 \                          # Min RNG seed 
-  --max-seed 1000 \                       # Max RNG seed 
-  --seed-step 100 \                       # Seeds each core should process at a time (saves memory)
-  --ntasks 2 \                            # Number of multiprocessing cores, seeds are divided between core
+usage: create_dataset.py [-h] [-d] [--ntasks NUM_TASKS] [--seed-step SEED_STEP]
+     [--image-size IMAGE_SIZE] [--min-seed MIN_SEED]
+     [--max-seed MAX_SEED]
+     (--conductive-cell-ratio CONDUCTIVE_CELL_RATIO | --conductive-cell-prob CONDUCTIVE_CELL_RATIO)
+     (--conductive-material-range CONDUCTIVE_MATERIAL_RANGE | --conductive-material-count CONDUCTIVE_MATERIAL_COUNT)
+     [--enable-absolute-permittivity] [--enable-fixed-charges]
+     [--max-iterations MAX_ITERATIONS]
+     [--convergence-tolerance CONVERGENCE_TOLERANCE] [--save-states]
+     [--output-path OUTPUT_PATH] [--output-folder OUTPUT_FOLDER]
 
-  # 4. Primary image generation options
-  --image-size 32 \                       # Size of one side of the grid image 
-  ## 4-A. Mutually Exclusive Options:
-  [--conductive-cell-ratio 0.5] \         # Proportion of cells that should be conductive (static)
-  [--conductive-cell-prob 0.5] \          # Probability a cell will be conductive or not (random)
-  ## 4-B. Mutually Exclusive Options:
-  [--conductive-material-range 1,12]  \   # Range to random select count of conductive material types
-  [--conductive-material-count 5]  \      # Count of conductive material types to add (static) 
+Electro Static Potential Simulation
 
-  # 5. Simulation behavior options
-  --max-iterations 2000 \                 # Increase/decrease depending on image size and observed simulation behavior
-  --convergence-tolerance 1e-6 \          # Tolerance for determining when solution has converged
-  --enable-fixed-charges  \               # Charges are fixed instead of free (less variation, different solver)
-  --enable-absolute-permittivity          # Alternative to using dielectric constants (uncommon, can ignore)
+options:
+  -h, --help            
+    show this help message and exit
+  -d, --debug           
+    Enables logging with debug level verbosity | default: false
+
+multi-process options:
+  --ntasks NUM_TASKS    
+    Number of parallel tasks (CPU cores). Max threads = 2 x NUM_TASKS if multithreading is on (default: 1)
+  --seed-step SEED_STEP
+    Number of seeds to be processed and written at a time | default: 100
+
+image generation options:
+  --image-size IMAGE_SIZE
+    Length for one side of 2D image | default: 32
+  --min-seed MIN_SEED   
+    Start seed for generating images from MIN_SEED to MAX_SEED | default: 1
+  --max-seed MAX_SEED   
+    Ending seed for generating images from MIN_SEED to MAX_SEED | default: 100
+  --conductive-cell-ratio CONDUCTIVE_CELL_RATIO
+    Proportion of cells that should be conductive (Before cellular automata) | required
+  --conductive-cell-prob CONDUCTIVE_CELL_RATIO
+    Probability a cells will be conductive or not (Before cellular automata) | required
+  --conductive-material-range CONDUCTIVE_MATERIAL_RANGE
+    Range to randomly pick a number of conductive materials; max range = 12 | required
+  --conductive-material-count CONDUCTIVE_MATERIAL_COUNT
+    Static count of total conductive materials; max count = 12 | required
+  --enable-absolute-permittivity
+    Enables converting material permittivity from relative to absolute | default: false
+  --enable-fixed-charges
+    Enables solving for fixed charges, charges are free by default | default: false
+  --max-iterations MAX_ITERATIONS
+    Maximum allowed iterations to run electrostatic potential solvers | default: 3000
+  --convergence-tolerance CONVERGENCE_TOLERANCE
+    Convergence threshold, simulation stops when the max delta between states falls below this value (default: 1e-6)
+  --save-states         
+    Enables saving states, where iteration is a power of two | default:false
+
+output path options:
+  --output-path OUTPUT_PATH
+    Path the the directory to create [--output-folder] and save to | default: current directory
+  --output-folder OUTPUT_FOLDER
+    Output folder name to create and save simulation data to | default: esp_dataset
 ```
 
-### Example runs with minimal options for creating a dataset
+### Example 1: Create a dataset with Poisson's Solver (free charges)
 
 ```bash
-# Outputs: ./hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5
-python3 create_dataset.py \
-  --output-folder=hdf5_dataset_1 \
+python create_dataset.py \
+  --output-folder=hdf5_dataset_example \
   --ntasks=1 \
   --min-seed=1 \                 
-  --max-seed=1000 \                    
+  --max-seed=1000 \ 
   --seed-step=100 \ 
   --image-size=32 \ 
-  --max-iterations=2500 \
-  --conductive-cell-ratio=0.65 \ 
-  --conductive-material-count=5 
-
-# Outputs: ./hdf5_dataset_2/electrostatic_poisson_32x32_500-1500.hdf5
-python3 create_dataset.py \
-  --output-folder=hdf5_dataset_2 \
-  --ntasks=2 \
-  --min-seed=500 \                 
-  --max-seed=1500 \                    
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=2500 \
-  --conductive-cell-prob=0.5 \ 
-  --conductive-material-range=1,3 
-
-# Outputs: ./hdf5_dataset_3/electrostatic_laplace_32x32_2500-5100.hdf5
-python3 create_dataset.py \
-  --output-folder=hdf5_dataset_3 \
-  --ntasks=3 \
-  --min-seed=2500 \                 
-  --max-seed=5100 \                    
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=5000 \
-  --conductive-cell-prob=0.75 \ 
-  --conductive-material-count=1 \
-  --enable-fixed-charges 
-
-# Outputs: ./hdf5_dataset_4/electrostatic_laplace_32x32_100-1500.hdf5
-python3 create_dataset.py \
-  --output-folder=hdf5_dataset_4 \
-  --ntasks=4 \
-  --min-seed=100 \                 
-  --max-seed=1500 \                    
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=5000 \
-  --conductive-cell-ratio=0.25 \ 
-  --conductive-material-range=1,10 \
-  --enable-fixed-charges 
+  --max-iterations=2000 \
+  --conductive-cell-prob=0.7 \ 
+  --conductive-material-range=1,10 
 ```
+> Outputs: ./hdf5_dataset_example_1/electrostatic_poisson_32x32_1-1000.hdf5
+
+### Example 2: Create a dataset with Laplace's solver (fixed charges)
+
+```bash
+python create_dataset.py \
+  --output-folder=hdf5_dataset_example \
+  --ntasks=2 \
+  --min-seed=1 \                 
+  --max-seed=1000 \ 
+  --seed-step=100 \ 
+  --image-size=32 \ 
+  --max-iterations=3000 \
+  --conductive-cell-ratio=0.5 \ 
+  --conductive-material-count=5
+  --enable-fixed-charges
+```
+> Outputs: ./hdf5_dataset_example_2/electrostatic_laplace_32x32_1-1000.hdf5
 
 ## Normalize dataset, plot samples, or reformat for SimVP
 
 ### File: `process_dataset.py`
 
-### Example run with all options
-
 ```bash
-python3 create_dataset.py \
-  # 1. Input options
-  --dataset-path "<path/to/datafile>" \   # Input path to dataset file to read and process
+usage: process_dataset.py [-h] [-d] [--dataset-path DATASET_PATH] [--normalize] [--simvp-format] [--sample-plots SAMPLE_PLOTS] [--plot-states] [--output-path OUTPUT_PATH] [--output-folder OUTPUT_FOLDER]
 
-  # 2. Output options
-  --output-path "<path/to/dir>" \         # Output directory outside of project root, defaults to project root
-  --output-folder "<folder_name>" \       # Output folder name, defaults to [--dataset-path] root dir
+Electro Static Potential Simulation
 
-  # 3. Dataset format options
-  --simvp-format \                        # Option to save the dataset specifically formatted for SimVP
-  --disable-normalization \               # Prevent default behavior to normalize all images and scalars 
+options:
+  -h, --help            
+    show this help message and exit
+  -d, --debug           
+    Enables logging with debug level verbosity | default: false
 
-  # 4. Visualization options
-  --sample-plots <int>                   # Number of samples to plot from the [--dataset-path] hdf5 file
+dataset options:
+  --dataset-path DATASET_PATH
+    Path the the input dataset to read and process | default: current directory
+  --normalize
+    Option to normalize simulation inputs and outputs to [0, 1] using min-max scaling | default: false
+  --simvp-format
+    Option to save dataset formatted for SimVP | default: false
+  --sample-plots SAMPLE_PLOTS
+    Optional number of samples to plot; No samples are plotted if set to 0 | default: 0
+  --plot-states
+    Option to plot intermediate simulation states; Requires passing [--save-states] to create_dataset.py | default: false
+
+output path options:
+  --output-path OUTPUT_PATH
+    Path the the directory to create [--output-folder] and save to | default: current directory
+  --output-folder OUTPUT_FOLDER
+    Output folder name to create and save simulation data to | default: esp_dataset
 ```
 
-### Example run to normalize and reformat for SimVP dataset 
+### Example 1: Normalize and convert HDF5 samples into SimVP format
 
 ```bash
-python3 process_dataset.py \
-    --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --output-folder=simvp_example_1 \
-    --simvp-format \
-    --sample-plots=100  # omit for no plots
-
-# Outputs: ./simvp_dataset_1/[simvp formatted structures ...]
-#          ./simvp_dataset_1/plots/[sample plot files ...]
+python process_dataset.py \
+    --dataset-path="esp_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --output-folder=simvp_format_example \
+    --normalize \
+    --simvp-format
 ```
+> Outputs: ./simvp_dataset_1/[simvp formatted structures ...]
 
-### Example run to normalize to a HDF5 file
+### Example 2: Saved a normalized version of an existing HDF5 dataset
 
 ```bash
-python3 process_dataset.py \
-    --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --sample-plots=100  # omit for no plots
-
-# Outputs: ./hdf5_dataset_1/normalized_electrostatic_poisson_32x32_1-1000.hdf5
-#          ./hdf5_dataset_1/plots/[sample plot files ...]
+python process_dataset.py \
+    --dataset-path="esp_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --normalize
 ```
+> Outputs: ./esp_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5
 
-### Example run to plot samples only (HDF5 format only)
+### Example 3: Plot 25 samples from existing HDF5 datasets
 
 ```bash
-python3 process_dataset.py \
-    --dataset-path="hdf5_dataset_1/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --sample-plots=100 \
-    --disable-normalization
-
-# Outputs: /hdf5_dataset_1/plots/[sample plot files ...]
+python process_dataset.py \
+    --dataset-path="esp_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --sample-plots=25 
 ```
+> Outputs: ./esp_dataset_example/plots/[sample plot files ...]
+> Plot files are saved as: `electrostatic_poisson_32x32_<seed>.png` 
 
-### General Notes
-- Example scripts are saved to: `example_scripts`
-  - `create_hdf5_dataset.sh` 
-    - Executable program: `create_dataset.py`
-    - Creates an HDF5 dataset from a set of simulation runs
-  - `normalize_hdf5_dataset.sh`
-    - Executable program: `process_dataset.py`
-    - Creates a normalized HDF5 dataset from an existing HDF5 dataset
-    - Optionally can save sample plots of the normalized data
-  - `plot_dataset_samples.sh`
-    - Executable program: `process_dataset.py`
-    - Demonstrates only plotting samples from the original HFD5 dataset
-  - `reformat_for_simvp.sh`
-      - executable program: `process_dataset.py`
-      - Converts an existing HDF5 dataset into a compatible format for SimVP
-      - Optionally can plot samples of the data reformatted for SimVP
-- Sample plots are saved in: `path/to/<output_folder_name>/plots`
-- Logs for stdout/stderr are saved in: `esp_simulation/logs`
-- Normalization is enabled by default and uses min/max scaling between 0.0, 1.0 
-  - Global extrema values are computed for all numerical data across the entire dataset
-    - The global extrema for arrays is the min and max cell values for all instances of that array
-    - Likewise, the global extrema for scalars is the min and max values for all instances of that scalar
-  - Samples plotted from non-normalized datasets used the saved global extrema for the color map boundaries
+```bash
+python process_dataset.py \
+    --dataset-path="esp_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5" \
+    --sample-plots=25 
+```
+> Outputs: ./esp_dataset_example/plots/[normalized sample plot files ...]
+> Plot files are saved as: `normalized_electrostatic_poisson_32x32_<seed>.png` 
 
-### HDF5 Format Notes
-- Default HDF5 formatted dataset will contain simulation records of all relevant simulation data
-  - Scalar groups: `['meta', 'metric']`, saved as HDF5 Attributes
-    - `metadata`: metadata from the simulation run (e.g., total iterations)
-    - `metric`: numerical data computed from the simulation output (e.g., total charge)
-  - Array groups: `['mask', 'image']`, saved as HDF5 Datasets
-      - `mask`: categorical masks for data generation (e.g., binary mask for conductive cells)
-      - `image`: 2D arrays containing computed numerical data (e.g., charge distribution)
-- Global extrema values for normalization are saved to: `path/to/<output_folder_name>/global_extrema_hdf5_<original_datafile_name>.json`
-    - Only `'images'` `'metrics'` groups are normalized (`masks` are categorical and `'meta'` is metadata)
-- Each simulation record is output to a HDF5 Group containing the above Groups
-  <details>   
-    <summary>EXAMPLE RECORD STRUCTURE </summary> 
 
-    ```plaintext
-    GROUP "record_1" {
+## Sample Images
+
+### Poisson's Solver (free charges)
+![Free Charges Sample Plot 1](images/normalized_electrostatic_poisson_32x32_14.png)
+![Free Charges Sample Plot 2](images/normalized_electrostatic_poisson_32x32_22.png)
+![Free Charges Sample Plot 3](images/normalized_electrostatic_poisson_32x32_25.png)
+![Free Charges Sample Plot 4](images/normalized_electrostatic_poisson_32x32_31.png)
+![Free Charges Sample Plot 5](images/normalized_electrostatic_poisson_32x32_46.png)
+
+---
+
+### Laplace's solver (fixed charges)
+![Fixed Charges Sample Plot 1](images/normalized_electrostatic_laplace_32x32_14.png)
+![Fixed Charges Sample Plot 2](images/normalized_electrostatic_laplace_32x32_22.png)
+![Fixed Charges Sample Plot 3](images/normalized_electrostatic_laplace_32x32_25.png)
+![Fixed Charges Sample Plot 4](images/normalized_electrostatic_laplace_32x32_31.png)
+![Fixed Charges Sample Plot 5](images/normalized_electrostatic_laplace_32x32_46.png)
+*Note: Images with small variations may appear uniform due to normalization across a global color map range.*
+
+
+## Dataset Notes
+
+### HDF5 Format
+- Each simulation is saved to a HDF5 group named `record_<id>`
+- Each saved record contains 4 subgroups:
+  - **Array groups** (`mask`, `image`): stored as HDF5 datasets
+  - **Scalar groups** (`meta`, `metric`): stored as HDF5 attributes
+- Below is the data structure of each simulation record
+  
+  <details>
+  <summary> SHOW RECORD DATA STRUCTURE </summary> 
+
+  ```json
+    GROUP "record_<#>" {
       GROUP "image" {
           DATASET "charge_distribution" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "electric_field_magnitude" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "electric_field_x" {
-            DATATYPE  H5T_IEEE_F64LE
-            DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
-          }
-          DATASET "electric_field_y" {
             DATATYPE  H5T_IEEE_F64LE
             DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
           }
@@ -230,11 +233,7 @@ python3 process_dataset.py \
       }
       GROUP "mask" {
           DATASET "conductive_material_map" {
-            DATATYPE  H5T_ENUM {
-                H5T_STD_I8LE;
-                "FALSE"            0;
-                "TRUE"             1;
-            }
+            DATATYPE  H5T_STD_I64LE
             DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
           }
           DATASET "material_category_map" {
@@ -283,66 +282,166 @@ python3 process_dataset.py \
           }
       }
     }
-    ```
-  <details> 
+  ```
+  </details>
 
-### SimVP Format Notes
-- Optional SimVP formatted dataset only includes the minimal input/output images
-- Specifically formatted for this fork of SimVP: https://github.com/drewg02/OpenSTL.git
-- Each simulation frame is saved to folder: `<unique_hash>_<datatype_name>_<#id>`
-  - `<unique_hash>` is a hash of the input conditions
-  - `<datatype_name>` is the simulation data name: `electrostatic`
-  - `<#id>` is a numeric ID for the simulation outputs from 0 to N (not based on seed #)
-- Each folder contains 2 NumPy files:
-  - `<unique_hash>_<datatype_name>_<#id>/0.npy`: Input images saved as (Channels x Width X Height)
-    - Initial condition images (3 Channels): `Initial Potential Map`, `Relative Permittivity`, `Charge Distribution`
-  - `<unique_hash>_<datatype_name>_<#id>/1.npy`: Output image saved as (1 x Width X Height)
-    - Final state image (1 Channels): `Final Potential Map`
-- Global extrema values for normalization are saved to: `path/to/<output_folder_name>/global_extrema_npy_<original_datafile_name>.json`
-    - All initial condition images and final state images are normalized respectively
+---
 
-### Simulation Solver Notes:
-- The solver equations used depends on if charges are considered *free* or *fixed*
-- By default charges are considered *free*, meaning they affect the electrostatic potential over time
-  - Free charges provide variation in the output, faster convergence, but longer simulation times
-  - Solves with [Poisson's equation](https://en.wikipedia.org/wiki/Discrete_Poisson_equation) for a discretized 2D grid
-  - Applies [Dirichlet boundary conditions](https://en.wikipedia.org/wiki/Dirichlet_boundary_condition), where boundaries are fixed to the permittivity of free-space
-- If `[--enable-fixed-charges]` is set, then charges are fixed, meaning electrostatic potential is constant
-  - Fixed charges have less variation in the output, slower convergence, but faster simulation times overall
-  - Solves with [Laplace's equation](https://en.wikipedia.org/wiki/Laplace%27s_equation#Electrostatics), which is derived from Poisson 
-  - Applies [Neumann boundary conditions](https://en.wikipedia.org/wiki/Neumann_boundary_condition), where boundaries reflect the behavior of inner cells
+### SimVP Format
+- Target format for: https://github.com/drewg02/OpenSTL.git
+- Each frame → folder: `<hash>_<datatype>_<id>`
+  - Files:
+    - `0.npy`: Input (3-channel): `initial_potential_map`, `permittivity_map`, `charge_distribution`
+    - `1.npy`: Output (1-channel): `final_potential_map`
+- Global extrema saved to: `global_extrema_npy_<original_datafile>.json`
 
-### Material Map Generation Notes:
-1. Initial conductive mask is created with options:
-  - `[--conductive-cell-ratio]`: Proportion of cells that should be conductive 
-    - Samples will have a consistent number of conductive cells
-    - Locations of conductive cells are randomized based on RNG seed
-  - `[--conductive-cell-prob]`: Probability a cell is conductive or not 
-    - Samples will have a variable number of conductive cells based on probability and RNG seed
-    - Locations of conductive cells determined by the probability and RNG seed
-2. Cellular automata + Connecting algorithm is applied to the initial conductive mask
-3. Conductive materials are added to the final conductive mask
-  - `[--conductive-material-count]`: Static count of conductor materials to add 
-    - Samples will have a consistent number of conductive material types
-  - `[--conductive-material-range]`: Range to randomly select count of conductor materials to add
-    - Samples will have a variable number of conductive material types
-  - Selected conductive materials are randomized based on RNG seed for both options
-4. Remaining non-border cells are filled randomly based on RNG seed with isolating materials
-5. The borders are set to `free space` to create an isolated environment to start with
+---
 
-### Reproducibility Notes:
-- Total simulation samples is based on seed range:
-  - `[--min-seed]` and `[--max-seed]`
-- Each seed can be used to reproduce a simulation given the same arguments
-  - Input arguments are saved to a JSON file saved to: `path/to/<output_folder_name>/arguments_<original_datafile_name>.json`
+### Reproducibility
+- Samples are generated via `[--min-seed]` to `[--max-seed]`
+- Simulations reproducible with same *seed* and *input arguments*
+  - Arguments are saved to: `arguments_<original_datafile>.json`
 
-### Sample simulation results for free charges
-![Free Charges Sample Plot 1](sample_plots/electrostatic_poisson_32x32_48.png)
-![Free Charges Sample Plot 2](sample_plots/electrostatic_poisson_32x32_67.png)
-![Free Charges Sample Plot 3](sample_plots/electrostatic_poisson_32x32_69.png)
+---
 
-### Sample simulation results for fixed charges
-![Fixed Charges Sample Plot 1](sample_plots/electrostatic_laplace_32x32_48.png)
-![Fixed Charges Sample Plot 2](sample_plots/electrostatic_laplace_32x32_67.png)
-![Fixed Charges Sample Plot 3](sample_plots/electrostatic_laplace_32x32_69.png)
-*Note: Due to the color map boundaries being set to the global min/max values across a set of simulations, images that have tiny differences between cells will appear as one color. Hence, the Final Potential Maps shown above.*
+### Normalization
+- Only `image` arrays and `metric` scaler are normalized
+  - `mask` arrays are considered categorical
+- Global extrema is saved to: `global_extrema_hdf5_<original_datafile>.json`
+  - This can be used for min-max scaling in another program
+
+---
+
+### Example Scripts
+- Example Scripts in `example_scripts/`:
+  - `create_hdf5_dataset.sh` → `create_dataset.py`: Generates HDF5 dataset from simulation runs
+  - `normalize_hdf5_dataset.sh` → `process_dataset.py`: Normalizes HDF5 dataset
+  - `plot_dataset_samples.sh` → `process_dataset.py`: Plots samples from original and normalized HDF5 dataset
+  - `reformat_for_simvp.sh` → `process_dataset.py`: Converts HDF5 to SimVP format
+
+
+## Material Notes
+
+### Material Mask Generation
+
+1. **Initial conductive mask**  
+   - `--conductive-cell-ratio`: sets a fixed percentage of conductive cells  
+   - `--conductive-cell-prob`: assigns conductive cells probabilistically
+2. **Generate conductive material shapes**  
+   - Cellular automata produce unique spatial regions  
+   - Regions are connected using a minimal spanning tree to ensure continuity
+3. **Assign conductive materials**  
+
+   - `--conductive-material-count`: assigns a fixed number of material IDs  
+   - `--conductive-material-range`: selects a random count from a specified range
+  
+    <details>
+    <summary> SHOW CONDUCTIVE MATERIAL DATA </summary> 
+
+      | Conductor       | Relative Permittivity |
+      |-----------------|------------------------|
+      | aluminum        | 3.5                    |
+      | nickel          | 5.0                    |
+      | stainless steel | 6.2                    |
+      | bronze          | 8.0                    |
+      | copper alloy    | 10.0                   |
+      | zinc            | 12.5                   |
+      | tin             | 15.0                   |
+      | lead            | 18.0                   |
+      | graphite        | 22.0                   |
+      | silicon         | 25.0                   |
+      | tantalum        | 35.0                   |
+      | iron            | 50.0                   |
+
+    </details>
+
+4. **Fill remaining cells** with *insulating* materials
+   
+      <details>
+      <summary> SHOW INSULATED MATERIAL DATA </summary> 
+
+      | Insulation   | Relative Permittivity  |
+      |--------------|------------------------|
+      | teflon       | 2.1                    |
+      | polyethylene | 2.4                    |
+      | nylon        | 3.6                    |
+      | epoxy resin  | 4.2                    |
+      | FR4          | 4.8                    |
+      | glass        | 6.5                    |
+      | rubber       | 9.5                    |
+
+      </details>
+
+5. **Set boundary cells** to free space (vacuum/air)
+  
+    <details>
+    <summary> SHOW FREE SPACE DATA </summary> 
+
+    | Free Space | Relative Permittivity  |
+    |------------|------------------------|
+    | air/vacuum | 1.0                    |
+
+    </details>
+
+
+## Solver Notes
+
+### Inputs and Outputs
+
+- **2D Inputs**
+  - Charge distribution → $\rho$ (initial condition)
+  - Relative permittivity map → $\varepsilon$ (initial condition)
+  - Initial potential → $\phi^0$ (boundary condition)
+
+- **2D Output**
+  - Final potential after $t$ iterations → $\phi^t$
+
+---
+
+### Default Solver: [Poisson’s Equation](https://en.wikipedia.org/wiki/Poisson%27s_equation)
+
+- Models *free charges*, where current flows between materials  
+  - Produces low variability across uniquely seeded runs
+- Applies [Dirichlet boundary conditions](https://en.wikipedia.org/wiki/Dirichlet_boundary_condition)
+- Solved in-place using the [Gauss–Seidel iterative method](https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method)
+- Charge distribution $\rho$ is derived from a synthetic energy field  
+  - Relative charge values are computed using [Gauss’s law](https://en.wikipedia.org/wiki/Gauss%27s_law)
+- Resulting potential $\phi_t$ is expressed in **relative units** (not physical voltages)
+
+```math
+\begin{align}
+\phi^{t} &:= \text{electrostatic potential at iteration } t \\
+\rho &:= \text{charge distribution} \\
+\varepsilon &:= \text{relative permittivity} \\
+n &:= 4 \quad \text{(number of neighbors)} \\
+i,j &:= \text{cell located at } i,j \\
+\phi^{t}_{i,j} &= \dfrac{\rho_{i,j}}{\varepsilon_{i,j}} + \dfrac{1}{n} \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right)
+\end{align}
+```
+
+---
+
+### Optional Solver: [Laplace’s Equation](https://en.wikipedia.org/wiki/Laplace%27s_equation)
+
+- Models *fixed charges*, where no current flows between materials  
+  - Enabled via: `--enable-fixed-charges`  
+  - Produces low variability across runs, even with unique seeds
+- Applies [Neumann boundary conditions](https://en.wikipedia.org/wiki/Neumann_boundary_condition)
+- Solved in-place using the [Gauss–Seidel iterative method](https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method)
+- A synthetic potential map is assumed as the initial condition
+- Charge distribution $\rho$ is inferred from the resulting potential  
+- Both $\rho$ and $\phi_t$ are expressed in **relative units** 
+
+
+
+```math
+\begin{align}
+\phi^{t} &:= \text{electrostatic potential at iteration } t \\
+\rho &:= \text{charge distribution} \\
+\varepsilon &:= \text{relative permittivity} \\
+n &:= 4 \quad \text{(number of neighbors)} \\
+i,j &:= \text{cell located at } i,j \\
+\phi^{t}_{i,j} &= \frac{1}{n} \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right) \\
+\rho_{i,j} &= \varepsilon_{i,j} \cdot \left[ \left( \phi^{t}_{i-1,j} + \phi^{t}_{i+1,j} + \phi^{t}_{i,j-1} + \phi^{t}_{i,j+1} \right) - \left( n \cdot \phi^{t}_{i,j} \right) \right]
+\end{align}
+```
