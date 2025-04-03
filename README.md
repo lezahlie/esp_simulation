@@ -212,7 +212,7 @@ python process_dataset.py \
   <summary> SHOW RECORD DATA STRUCTURE </summary> 
 
   ```plaintext
-    GROUP "record_<#>" {
+  GROUP "record_<#>" {
       GROUP "image" {
           DATASET "charge_distribution" {
             DATATYPE  H5T_IEEE_F64LE
@@ -281,7 +281,7 @@ python process_dataset.py \
             DATASPACE  SCALAR
           }
       }
-    }
+  }
   ```
   </details>
 
