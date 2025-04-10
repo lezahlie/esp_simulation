@@ -101,7 +101,7 @@ python create_dataset.py \
   --image-size=32 \ 
   --max-iterations=3000 \
   --conductive-cell-ratio=0.5 \ 
-  --conductive-material-count=5
+  --conductive-material-count=5 \
   --enable-fixed-charges
 ```
 > Outputs: ./hdf5_dataset_example_2/electrostatic_laplace_32x32_1-1000.hdf5
@@ -211,8 +211,8 @@ python process_dataset.py \
   <details>
   <summary> SHOW RECORD DATA STRUCTURE </summary> 
 
-  ```json
-    GROUP "record_<#>" {
+  ```plaintext
+  GROUP "record_<#>" {
       GROUP "image" {
           DATASET "charge_distribution" {
             DATATYPE  H5T_IEEE_F64LE
@@ -281,7 +281,7 @@ python process_dataset.py \
             DATASPACE  SCALAR
           }
       }
-    }
+  }
   ```
   </details>
 
@@ -334,10 +334,8 @@ python process_dataset.py \
 
    - `--conductive-material-count`: assigns a fixed number of material IDs  
    - `--conductive-material-range`: selects a random count from a specified range
-  
-    <details>
-    <summary> SHOW CONDUCTIVE MATERIAL DATA </summary> 
 
+      #### Conductive Materials
       | Conductor       | Relative Permittivity |
       |-----------------|------------------------|
       | aluminum        | 3.5                    |
@@ -353,35 +351,27 @@ python process_dataset.py \
       | tantalum        | 35.0                   |
       | iron            | 50.0                   |
 
-    </details>
+
 
 4. **Fill remaining cells** with *insulating* materials
-   
-      <details>
-      <summary> SHOW INSULATED MATERIAL DATA </summary> 
 
-      | Insulation   | Relative Permittivity  |
-      |--------------|------------------------|
-      | teflon       | 2.1                    |
-      | polyethylene | 2.4                    |
-      | nylon        | 3.6                    |
-      | epoxy resin  | 4.2                    |
-      | FR4          | 4.8                    |
-      | glass        | 6.5                    |
-      | rubber       | 9.5                    |
+    #### Insulating Materials
+    | Insulator    | Relative Permittivity  |
+    |--------------|------------------------|
+    | teflon       | 2.1                    |
+    | polyethylene | 2.4                    |
+    | nylon        | 3.6                    |
+    | epoxy resin  | 4.2                    |
+    | FR4          | 4.8                    |
+    | glass        | 6.5                    |
+    | rubber       | 9.5                    |
 
-      </details>
-
-5. **Set boundary cells** to free space (vacuum/air)
+1. **Set boundary cells** to free space (vacuum/air)
   
-    <details>
-    <summary> SHOW FREE SPACE DATA </summary> 
-
+    #### Free Space
     | Free Space | Relative Permittivity  |
     |------------|------------------------|
     | air/vacuum | 1.0                    |
-
-    </details>
 
 
 ## Solver Notes
