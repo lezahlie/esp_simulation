@@ -8,7 +8,7 @@ python $root_path/create_dataset.py \
 --min-seed=1 \
 --max-seed=1000 \
 --seed-step=100 \
---ntasks=2 \
+--ntasks=1 \
 --image-size=32 \
 --conductive-cell-prob=0.5 \
 --conductive-material-range=1,10 \

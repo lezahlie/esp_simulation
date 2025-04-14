@@ -76,7 +76,7 @@ def plot_sample_images(map_list, plot_title, plot_path, nrows = 1):
     if len(map_list) > 4:
         nrows = 2
     ncols = len(map_list)//nrows
-    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*5, (nrows*4)+0.5))
+    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols*4.5, nrows*4))
     axs = axs.flatten()
 
     for ax, config in zip(axs, map_list):
@@ -114,14 +114,17 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
         extrema_values = global_extrema_values if global_extrema_values is not None else {}
         input_minmax = extrema_values.get('initial_potential_map', None)
         output_minmax = extrema_values.get('final_potential_map', None)
+        perm_minmax = extrema_values.get('permittivity_map', None)
+        charge_minmax = extrema_values.get('charge_distribution', None)
+
         map_list = [
-                MapConfig(sample['image_permittivity_map'], f"Input: {permittivity_titles[0]}", 
-                        permittivity_titles[1], 'plasma', extrema_values.get('permittivity_map', None), False, None),
-                MapConfig(sample['image_charge_distribution'], "Input: Charge Distribution (Coulombs/meters)", 
-                        "Charge Density (C/m)", 'RdYlBu_r', extrema_values.get('charge_distribution', None), False, None),
-                MapConfig(sample['image_initial_potential_map'], "Input: Dirichlet Boundary (Volts)", 
+                MapConfig(sample['image_permittivity_map'], f"{permittivity_titles[0]}", 
+                        permittivity_titles[1], 'plasma', perm_minmax, False, None),
+                MapConfig(sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", 
+                        "Charge Density (C/m)", 'RdYlBu_r', charge_minmax, False, None),
+                MapConfig(sample['image_initial_potential_map'], "Initial Potential (Volts)", 
                         "Potential (V)", 'turbo', input_minmax, False, None),
-                MapConfig(sample['image_final_potential_map'], "Output: Final Potential (Volts)", 
+                MapConfig(sample['image_final_potential_map'], "Final Potential (Volts)", 
                         "Potential (V)", 'turbo', output_minmax, False, None)
             ]
 
@@ -138,29 +141,20 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
         
         if plot_states:
             new_plot_file =  plot_file.replace(".png", "_states.png")
-            potential_states = {
-                0: sample['image_initial_potential_map'],
-                **{i: sample['image_intermediate_potential_states'][i] 
-                        for i in range(1, total_iterations-1)},
-                total_iterations: sample['image_final_potential_map'],
-            }
-            global_minmax = None
-            if extrema_values:
-                state_minmax = extrema_values['intermediate_potential_states']
-                global_min = np.min([state_minmax[0], input_minmax[0], output_minmax[0]])
-                global_max = np.max([state_minmax[1], input_minmax[1], output_minmax[1]])
-                global_minmax = (global_min, global_max)
-            plot_potential_states(potential_states, new_plot_file, random_seed, global_minmax)
+            potential_states = {0: sample['image_initial_potential_map']}
+            for key, val in sample.items():
+                if key.startswith("image_potential_state_"):
+                    iteration = int(key.split("_")[-1])
+                    potential_states[iteration] = val
+            potential_states[total_iterations] = sample['image_final_potential_map']
+            plot_potential_states(potential_states, new_plot_file, random_seed)
             logger.info(f"Saved sample states plot for seed {random_seed} to: {new_plot_file}")
 
 
-def plot_potential_states(potential_states, plot_path, seed_num, global_extrema, normalized=False):
+def plot_potential_states(potential_states, plot_path, seed_num, normalized=False):
     states = potential_states
-    if global_extrema:
-        global_min, global_max = global_extrema
-    else:
-        global_min = np.min([np.min(state) for state in states.values()])
-        global_max = np.max([np.max(state) for state in states.values()])
+    global_min = np.min([np.min(state) for state in states.values()])
+    global_max = np.max([np.max(state) for state in states.values()])
     data_min, data_max = round(global_min), round(global_max)
 
     if normalized:  
@@ -169,13 +163,15 @@ def plot_potential_states(potential_states, plot_path, seed_num, global_extrema,
                         for k, state in potential_states.items()}
         data_min, data_max = 0, 1
 
-    max_key = max(k for k in states)
-    filtered_states = {
-        k: v
-        for k, v in states.items()
-        if k == 0 or (k < 1024 and (k & (k - 1)) == 0) or k == max_key
-    }
-    sorted_states = dict(sorted(filtered_states.items()))
+    sorted_states = dict(sorted(potential_states.items())[:12])
+
+    # this is for when all states are saved
+    # filtered_states = {
+    #     k: v
+    #     for k, v in states.items()
+    #     if k == 0 or (k < 1024 and (k & (k - 1)) == 0) or k == max_key
+    # }
+    # sorted_states = dict(sorted(filtered_states.items()))
 
     num_states = len(sorted_states)
     if num_states > 4:
@@ -185,13 +181,13 @@ def plot_potential_states(potential_states, plot_path, seed_num, global_extrema,
         ncols = num_states
         nrows = 1
 
-    fig, axs = plt.subplots(nrows, ncols, figsize=(ncols * 6, nrows * 5))
-    axs = axs.flatten() 
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 6, nrows * 5))
+    axes = axes.flatten() 
 
     for i, (step, state) in enumerate(sorted_states.items()):
-        ax = axs[i]
+        ax = axes[i]
         im = ax.imshow(state, cmap='turbo', origin='upper', vmin=data_min, vmax=data_max)
-        ax.set_xlabel(f"State #{step}", fontsize=20, labelpad=10)
+        ax.set_title(f"State #{step}", fontsize=20, pad=10)
         ax.set_xticks([])
         ax.set_yticks([])
 
@@ -202,8 +198,8 @@ def plot_potential_states(potential_states, plot_path, seed_num, global_extrema,
         cbar.ax.set_yticklabels([f"{tick:.1f}" for tick in tick_values])
         cbar.ax.yaxis.set_tick_params(labelsize=18, pad=5)   
 
-    for j in range(num_states, len(axs)):
-        axs[j].axis('off')
+    for j in range(num_states, len(axes)):
+        axes[j].axis('off')
 
     plt.suptitle(f"Electrostatic Potential Simulation Time-Steps (Seed: {seed_num})", fontsize=22, fontweight='bold', y=0.99)
     plt.tight_layout(rect=[0, 0, 1, 0.98])
