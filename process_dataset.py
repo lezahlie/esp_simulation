@@ -31,9 +31,10 @@ def main():
     new_dataset_file_path = None
 
     # find the global extreme values file
-    extrema_file_paths = glob(f"{dataset_folder_path}/global_extrema_{DEFAULT_DATAFILE_EXT}_{dataset_file_name.replace(DEFAULT_DATAFILE_EXT, 'json')}")
+    global_extrema_file = f"{dataset_folder_path}/global_extrema_{DEFAULT_DATAFILE_EXT}_{dataset_file_name.replace('normalized_', '').replace(DEFAULT_DATAFILE_EXT, 'json')}"
+    extrema_file_paths = glob(global_extrema_file)
     if len(extrema_file_paths) != 1:
-        raise FileNotFoundError(f"Cannot find global extrema json file in path: {dataset_folder_path}")
+        raise FileNotFoundError(f"Cannot find global extrema json file in path: {global_extrema_file}")
     global_extrema_file = extrema_file_paths[0]
     global_extrema_values = read_from_json(extrema_file_paths[0])
     global_extrema_postfix = dataset_file_name.replace(DEFAULT_DATAFILE_EXT, 'json')
@@ -49,6 +50,8 @@ def main():
         normalize_hdf5_to_hdf5(dataset_file_path, new_dataset_file_path, global_extrema_values)
         if output_folder_path != dataset_folder_path:
             save_to_json(path.join(output_folder_path, path.basename(global_extrema_file)), global_extrema_values)
+    elif 'normalized' in dataset_file_name:
+        new_dataset_file_path = dataset_file_path
 
     # save sample plots
     if sample_plots == 0:
@@ -56,7 +59,7 @@ def main():
 
     if new_dataset_file_path:
         plot_dataset_file = new_dataset_file_path
-        global_extrema_values = {key: (0.0, 1.0) for key in global_extrema_values['image'].keys()}
+        global_extrema_values = {key: [0.0, 1.0] for key in global_extrema_values['image'].keys()}
     else:
         plot_dataset_file = dataset_file_path
         global_extrema_values = global_extrema_values['image']

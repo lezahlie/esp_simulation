@@ -11,13 +11,13 @@ def solve_poisson_equation(potential_map, charge_distribution, permittivity_map,
     iteration = 0
     converged = False
     inverse_permittivity_map = np.where(permittivity_map != 0, 1.0 / permittivity_map, 0.0)
-    intermediate_states = []
+    potential_states = {}
 
     while not converged and iteration < max_iterations:
         max_delta = 0.0
 
-        if save_states and iteration > 0:
-            intermediate_states.append(potential_map.copy())
+        if save_states and iteration > 0 and (iteration & (iteration - 1)) == 0:
+            potential_states[f'potential_state_{iteration}'] = potential_map.copy()
                                     
         for i in range(1, charge_distribution.shape[0] - 1):
             for j in range(1, charge_distribution.shape[1] - 1):
@@ -35,7 +35,7 @@ def solve_poisson_equation(potential_map, charge_distribution, permittivity_map,
     logger.debug(f"Iteration[{iteration}]: converged = {converged}, max delta = {max_delta}")
     assert np.any(potential_map != 0), "Poisson Solver: Potential map is all zeros!"
 
-    return potential_map, intermediate_states, (max_delta, converged, iteration) 
+    return potential_map, potential_states, (max_delta, converged, iteration) 
 
 # Follows Laplace's equation using the Gauss–Seidel method
 # https://en.wikipedia.org/wiki/Laplace%27s_equation
@@ -43,13 +43,13 @@ def solve_poisson_equation(potential_map, charge_distribution, permittivity_map,
 def solve_laplace_equation(potential_map, max_iterations=1000, convergence_tolerance=1e-6, save_states=False):
     iteration = 0
     converged = False
-    intermediate_states = []
+    potential_states = {}
 
     while not converged and iteration < max_iterations:
         max_delta = 0.0 
             
-        if save_states and iteration > 0:
-            intermediate_states.append(potential_map.copy())
+        if save_states and iteration > 0 and (iteration & (iteration - 1)) == 0:
+            potential_states[f'potential_state_{iteration}'] = potential_map.copy()
 
         for i in range(1, potential_map.shape[0] - 1):
             for j in range(1, potential_map.shape[1] - 1):
@@ -67,7 +67,7 @@ def solve_laplace_equation(potential_map, max_iterations=1000, convergence_toler
     logger.debug(f"Iteration[{iteration}]: converged = {converged}, max delta = {max_delta}")
     assert np.any(potential_map != 0), "Laplace Solver: Potential map is all zeros!"
 
-    return potential_map, intermediate_states, (max_delta, converged, iteration) 
+    return potential_map, potential_states, (max_delta, converged, iteration) 
 
 # Computes charge distribution from inverse of Poisson's equation
 # by applying the Laplace operator to the potential map 
@@ -113,7 +113,8 @@ def generate_free_charge_distribution(conductive_material_mask, permittivity_map
     rho_free = div_D_x + div_D_y
 
     # restrict free charges to conductive regions
-    free_charge_distribution = np.where(conductive_material_mask, rho_free, 0)
+    charge_distribution = np.where(conductive_material_mask, rho_free, 0)
+    free_charge_distribution = dirichlet_boundary_conditions(charge_distribution, 0)
 
     return free_charge_distribution
 
@@ -127,7 +128,7 @@ def compute_electrostatic_potential(conductive_material_mask, permittivity_map, 
     if voltage_range is None:
         charge_distribution = generate_free_charge_distribution(conductive_material_mask, permittivity_map)
 
-        final_potential, intermediate_potential, (max_delta, completed, total_iterations) = solve_poisson_equation(input_potential_map,
+        final_potential, potential_states, (max_delta, completed, total_iterations) = solve_poisson_equation(input_potential_map,
                                                                                                                     charge_distribution, 
                                                                                                                     permittivity_map, 
                                                                                                                     max_iterations=max_iterations, 
@@ -135,7 +136,7 @@ def compute_electrostatic_potential(conductive_material_mask, permittivity_map, 
                                                                                                                     save_states=save_states) 
 
     else:
-        final_potential, intermediate_potential, (max_delta, completed, total_iterations) = solve_laplace_equation(input_potential_map,
+        final_potential, potential_states, (max_delta, completed, total_iterations) = solve_laplace_equation(input_potential_map,
                                                                                                                     max_iterations=max_iterations, 
                                                                                                                     convergence_tolerance=tolerance_value,
                                                                                                                     save_states=save_states)
@@ -147,8 +148,8 @@ def compute_electrostatic_potential(conductive_material_mask, permittivity_map, 
         "final_potential_map": final_potential
     }
 
-    if save_states and intermediate_potential:
-        solver_images["intermediate_potential_states"] = np.stack(intermediate_potential)
+    if save_states and potential_states:
+        solver_images.update(potential_states)
 
     solver_meta = {
         "max_delta": max_delta,
