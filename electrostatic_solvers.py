@@ -13,12 +13,16 @@ def solve_poisson_equation(potential_map, charge_distribution, permittivity_map,
     inverse_permittivity_map = np.where(permittivity_map != 0, 1.0 / permittivity_map, 0.0)
     potential_states = {}
 
+
+    save_states_condition = (lambda i: ((0 < i < 21) or ((i & (i - 1)) == 0))) if save_states else False
+
+
     while not converged and iteration < max_iterations:
         max_delta = 0.0
 
-        if save_states and iteration > 0 and (iteration & (iteration - 1)) == 0:
+        if save_states_condition(iteration):
             potential_states[f'potential_state_{iteration}'] = potential_map.copy()
-                                    
+
         for i in range(1, charge_distribution.shape[0] - 1):
             for j in range(1, charge_distribution.shape[1] - 1):
 
@@ -45,12 +49,14 @@ def solve_laplace_equation(potential_map, max_iterations=1000, convergence_toler
     converged = False
     potential_states = {}
 
+    save_states_condition = (lambda i: ((0 < i < 21) or ((i & (i - 1)) == 0))) if save_states else False
+
     while not converged and iteration < max_iterations:
         max_delta = 0.0 
-            
-        if save_states and iteration > 0 and (iteration & (iteration - 1)) == 0:
-            potential_states[f'potential_state_{iteration}'] = potential_map.copy()
 
+        if save_states_condition(iteration):
+            potential_states[f'potential_state_{iteration}'] = potential_map.copy()
+    
         for i in range(1, potential_map.shape[0] - 1):
             for j in range(1, potential_map.shape[1] - 1):
 

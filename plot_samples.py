@@ -146,6 +146,7 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
                 if key.startswith("image_potential_state_"):
                     iteration = int(key.split("_")[-1])
                     potential_states[iteration] = val
+
             potential_states[total_iterations] = sample['image_final_potential_map']
             plot_potential_states(potential_states, new_plot_file, random_seed)
             logger.info(f"Saved sample states plot for seed {random_seed} to: {new_plot_file}")
@@ -163,9 +164,9 @@ def plot_potential_states(potential_states, plot_path, seed_num, normalized=Fals
                         for k, state in potential_states.items()}
         data_min, data_max = 0, 1
 
-    sorted_states = dict(sorted(potential_states.items())[:12])
+    ## this is for when all states are saved, but that's not implemented right now
+    ## currently saving states: initial, {1, ..., 20}, {log2(i) < final}, final 
 
-    # this is for when all states are saved
     # filtered_states = {
     #     k: v
     #     for k, v in states.items()
@@ -173,10 +174,14 @@ def plot_potential_states(potential_states, plot_path, seed_num, normalized=Fals
     # }
     # sorted_states = dict(sorted(filtered_states.items()))
 
+    sorted_states = dict(sorted(states.items()))
     num_states = len(sorted_states)
-    if num_states > 4:
-        ncols = 6 
-        nrows = (num_states + ncols - 1) // ncols 
+
+
+    if num_states > 6:
+        ncols = 7 
+        nrows = (num_states + ncols - 1) // ncols
+        
     else:
         ncols = num_states
         nrows = 1
