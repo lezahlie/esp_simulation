@@ -148,12 +148,12 @@ def check_simulation_args(args):
             raise ValueError(f"CONDUCTIVE_STATIC_COUNT must be a INT between [1, {num_conductive}]")    
 
     if not (1 <= args.min_seed < args.max_seed):
-        raise ValueError("MIN_SEED must be a INT between [1, MAX_SEED - 1]")
+        raise ValueError("MIN_SEED must be a INT between [1, MAX_SEED]")
     if not (args.min_seed < args.max_seed):
         raise ValueError("MAX_SEED must be a INT greater than MIN_SEED.")
     total_seeds = args.max_seed-args.min_seed+1
     if hasattr(args, 'seed_step') and not (0 < args.seed_step < total_seeds):
-        raise ValueError(f"SEED_STEP must be a INT between [1, {total_seeds-1}]")
+        raise ValueError(f"SEED_STEP must be a INT between [1, {total_seeds}]")
     if not (0 < args.max_iterations < 1e+9):
         raise ValueError("max_iterations must be a INT greater between [1, 1E9].")
     if not (0.0 <= args.convergence_tolerance <= 1.0):

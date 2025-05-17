@@ -24,11 +24,9 @@ SIMVP_DATAFILE_EXT = 'npy'
 DATATYPE_NAME = "electrostatic"
 
 def create_save_states_predicate(conditions):
-    # Handle 'all'
     if 'all' in conditions:
         return lambda i: True
 
-    # Start with a condition that is always False (base condition)
     combined_predicate = lambda i: False
 
     for condition in conditions:
@@ -578,8 +576,8 @@ def normalize_hdf5_to_numpy(input_file_path: str, stats_values_dict: dict | None
     minmax_values_dict = extract_minmax_tuples(stats_values_dict)
     subgroup = 'image'
     minmax_values = minmax_values_dict[subgroup]
-    input_keys = ["initial_potential_map", "charge_distribution", "permittivity_map"]
-    output_keys = ["final_potential_map"]
+    input_keys = ["potential_state_initial", "charge_distribution", "permittivity_map"]
+    output_keys = ["potential_state_final"]
     sim_idx = 0
 
     try:

@@ -63,7 +63,7 @@ def plot_image_map(ax, array, cbar_name, cmap_name='plasma', discrete=False, ext
 
     im = ax.imshow(array, cmap=custom_cmap, norm=norm, origin='upper')
 
-    cbar = plt.colorbar(im, shrink=1.0, ax=ax)
+    cbar = plt.colorbar(im, shrink=0.8, ax=ax)
     cbar.set_ticks(cbar_ticks)
     cbar.ax.yaxis.set_major_formatter(cbar_formatter)
     cbar.ax.yaxis.set_tick_params(rotation=label_rotate)
@@ -112,19 +112,19 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
 
         MapConfig = namedtuple("MapConfig", ["array", "title", "cbar_label", "cmap_name", "extrema_values", "discrete", "tick_labels"])
         extrema_values = global_statistics_values if global_statistics_values is not None else {}
-        input_minmax = extrema_values.get('initial_potential_map', None)
-        output_minmax = extrema_values.get('final_potential_map', None) 
+        input_minmax = extrema_values.get('potential_state_initial', None)
+        output_minmax = extrema_values.get('potential_state_final', None) 
         perm_minmax = extrema_values.get('permittivity_map', None)
         charge_minmax = extrema_values.get('charge_distribution', None)
         
         map_list = [
-                MapConfig(sample['image_permittivity_map'], f"{permittivity_titles[0]}", 
-                        permittivity_titles[1], 'plasma', perm_minmax, False, None),
                 MapConfig(sample['image_charge_distribution'], "Charge Distribution (Coulombs/meters)", 
                         "Charge Density (C/m)", 'RdYlBu_r', charge_minmax, False, None),
-                MapConfig(sample['image_initial_potential_map'], "Initial Potential (Volts)", 
+                MapConfig(sample['image_permittivity_map'], f"{permittivity_titles[0]}", 
+                        permittivity_titles[1], 'plasma', perm_minmax, False, None),
+                MapConfig(sample['image_potential_state_initial'], "Initial Potential (Volts)", 
                         "Potential (V)", 'turbo', input_minmax, False, None),
-                MapConfig(sample['image_final_potential_map'], "Final Potential (Volts)", 
+                MapConfig(sample['image_potential_state_final'], "Final Potential (Volts)", 
                         "Potential (V)", 'turbo', output_minmax, False, None)
             ]
 
@@ -142,15 +142,16 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
         if plot_states:
             count, limit = 0, 34
             new_plot_file =  plot_file.replace(".png", "_states.png")
-            potential_states = {0: sample['image_initial_potential_map']}
+            potential_states = {0: sample['image_potential_state_initial']}
+            pattern = r"^image_potential_state_(\d+)$"
             for key, val in sample.items():
-                if key.startswith("image_potential_state_"):
+                if re.match(pattern, key):
                     iteration = int(key.split("_")[-1])
                     potential_states[iteration] = val
                     count+=1
                     if count == limit:
                         break
-            potential_states[total_iterations] = sample['image_final_potential_map']
+            potential_states[total_iterations] = sample['image_potential_state_final']
             plot_potential_states(potential_states, new_plot_file, random_seed)
             logger.info(f"Saved sample states plot for seed {random_seed} to: {new_plot_file}")
         

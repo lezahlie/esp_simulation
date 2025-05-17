@@ -15,4 +15,3 @@ plot_dataset()  {
 
 plot_dataset 10 "$root_path/hdf5_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5"
 plot_dataset 10 "$root_path/hdf5_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5"
-

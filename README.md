@@ -231,11 +231,11 @@ python process_dataset.py \
             DATATYPE  H5T_IEEE_F64LE
             DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
           }
-          DATASET "final_potential_map" {
+          DATASET "potential_state_final" {
             DATATYPE  H5T_IEEE_F64LE
             DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
           }
-          DATASET "initial_potential_map" {
+          DATASET "potential_state_initial" {
             DATATYPE  H5T_IEEE_F64LE
             DATASPACE  SIMPLE { ( 32, 32 ) / ( 32, 32 ) }
           }
@@ -304,8 +304,8 @@ python process_dataset.py \
 - Target format for: https://github.com/drewg02/OpenSTL.git
 - Each frame → folder: `<hash>_<datatype>_<id>`
   - Files:
-    - `0.npy`: Input (3-channel): `initial_potential_map`, `permittivity_map`, `charge_distribution`
-    - `1.npy`: Output (1-channel): `final_potential_map`
+    - `0.npy`: Input (3-channel): `potential_state_initial`, `permittivity_map`, `charge_distribution`
+    - `1.npy`: Output (1-channel): `potential_state_final`
 - Global statistics is saved per channel to: `global_statistics_npy_<original_datafile>.json`
 
 ---

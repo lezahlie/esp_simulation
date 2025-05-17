@@ -1,7 +1,7 @@
 from setup_logger import setup_logger
 logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
 from utilities import np, ndimg
-from electrostatic_mappers import generate_initial_potential_map, neumann_boundary_conditions, dirichlet_boundary_conditions
+from electrostatic_mappers import generate_potential_state_initial, neumann_boundary_conditions, dirichlet_boundary_conditions
 
 # Poisson's equation using the Gauss–Seidel method
 # https://en.wikipedia.org/wiki/Discrete_Poisson_equation
@@ -121,7 +121,7 @@ def generate_free_charge_distribution(conductive_material_mask, permittivity_map
 
 def compute_electrostatic_potential(conductive_material_mask, permittivity_map, max_iterations, tolerance_value, voltage_range: tuple[int, int] = None, save_states_predicate = lambda i: False):
 
-    input_potential_map = generate_initial_potential_map(conductive_material_mask, voltage_range)
+    input_potential_map = generate_potential_state_initial(conductive_material_mask, voltage_range)
     initial_potential = input_potential_map.copy()
 
     if voltage_range is None:
@@ -143,8 +143,8 @@ def compute_electrostatic_potential(conductive_material_mask, permittivity_map, 
 
     solver_images= {
         "charge_distribution": charge_distribution,
-        "initial_potential_map": initial_potential, 
-        "final_potential_map": final_potential
+        "potential_state_initial": initial_potential, 
+        "potential_state_final": final_potential
     }
 
     if potential_states:

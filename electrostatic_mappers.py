@@ -201,7 +201,7 @@ def mixed_boundary_conditions(potential_map, fixed_sides=(False, False, True, Tr
 
 
 
-def generate_initial_potential_map(conductive_mask, voltage_range: tuple[int, int] = None):
+def generate_potential_state_initial(conductive_mask, voltage_range: tuple[int, int] = None):
     initial_map = np.zeros_like(conductive_mask, dtype=float)
 
     if voltage_range is not None:

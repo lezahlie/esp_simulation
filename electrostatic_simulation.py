@@ -75,7 +75,7 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
         return simulation_result
 
     # compute electric field across x and y
-    electric_field_x, electric_field_y = compute_electric_field(image_dict['final_potential_map'])
+    electric_field_x, electric_field_y = compute_electric_field(image_dict['potential_state_final'])
 
     # @note unused for now to save compute time
 
@@ -96,9 +96,9 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
 
     # @note unused for now to save compute time
     # electric_field_magnitude = np.sqrt(electric_field_x**2 + electric_field_y**2)
-    # potential_diff_x, potential_diff_y = compute_local_potential_differences(final_potential_map)
-    # global_potential_diff = compute_global_potential_differences(final_potential_map, reference_point=(grid_length // 2, grid_length // 2))
-    # pairwise_potential_diff = compute_pairwise_potential_differences(final_potential_map)
+    # potential_diff_x, potential_diff_y = compute_local_potential_differences(potential_state_final)
+    # global_potential_diff = compute_global_potential_differences(potential_state_final, reference_point=(grid_length // 2, grid_length // 2))
+    # pairwise_potential_diff = compute_pairwise_potential_differences(potential_state_final)
 
     simulation_result["image"].update(image_dict)
     simulation_result["metric"] = metric_dict
