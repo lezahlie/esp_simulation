@@ -1,12 +1,12 @@
 from setup_logger import setup_logger
 logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
-from utilities import np, create_folder, read_from_hdf5, save_to_hdf5
+from utilities import np, create_folder, read_from_hdf5, save_to_hdf5, create_save_states_predicate
 from electrostatic_mappers import *
 from electrostatic_metrics import *
 from electrostatic_solvers import compute_electrostatic_potential
 from connect_materials import connect_cellular_automata_shape
 
-def run_electrostatic_simulation(simulation_config: dict, seed: int = None, images_only:bool=False, save_states:bool=False):
+def run_electrostatic_simulation(simulation_config: dict, seed: int = None, images_only:bool=False):
     if seed:
         np.random.seed(seed)
 
@@ -18,6 +18,9 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
     max_iterations = simulation_config.get('max_iterations', 2000)
     convergence_tolerance = simulation_config.get('convergence_tolerance', 1e-6)
     voltage_range = simulation_config.get('fixed_voltage_range', None) 
+    save_states = simulation_config.get('save_states', None) 
+
+    
 
     mask_dict = {}
     # material ternary mask of categories: free_space, insulated, conductors
@@ -42,13 +45,14 @@ def run_electrostatic_simulation(simulation_config: dict, seed: int = None, imag
     # permittivity map of all material permittivity values
     permittivity_value_map = generate_permittivity_value_map(conn_material_index_map)
 
+    save_states_predicate = create_save_states_predicate(save_states)
     # solve for charge_distribution and potential_states 
     solver_images, solver_meta = compute_electrostatic_potential(conductive_material_mask,
                                                                 permittivity_value_map, 
                                                                 max_iterations, 
                                                                 convergence_tolerance,
-                                                                voltage_range, 
-                                                                save_states)
+                                                                voltage_range,
+                                                                save_states_predicate)
 
     meta_dict = {
         "random_seed": seed, 
@@ -109,15 +113,16 @@ def generate_electrostatic_maps(min_seed: int=0,
                                 conductive_cell_prob:float|None=None, 
                                 conductive_material_count:int|None=None,
                                 conductive_material_range:tuple[int,int]|None=None,
-                                enable_fixed_charges=False, 
-                                enable_absolute_permittivity=False,
-                                max_iterations=2000,
-                                convergence_tolerance=1e-6,
-                                images_only=False, 
-                                save_states=False):
+                                enable_fixed_charges:bool=False, 
+                                enable_absolute_permittivity:bool=False,
+                                max_iterations:int=1000,
+                                convergence_tolerance:float=1e-6,
+                                images_only:bool=False, 
+                                save_states:tuple[str,int]|None=None):
 
 
     set_permittivity_type(enable_absolute_permittivity)
+
 
     if conductive_cell_ratio is None and conductive_cell_prob is None:
         raise ValueError("conductive_cell_prob and conductive_cell_ratio are both None")
@@ -127,22 +132,23 @@ def generate_electrostatic_maps(min_seed: int=0,
         raise ValueError("conductive_material_count and conductive_material_range are both None")
     elif isinstance(conductive_material_count, int) and isinstance(conductive_material_range, tuple[int,int]):
         raise ValueError("conductive_material_count and conductive_material_range are mutually exclusive")
-    
+
     simulation_config = {
         'grid_length': grid_length,  
         'conductive_cell_ratio': conductive_cell_ratio, 
         'conductive_cell_prob': conductive_cell_prob, 
         'conductive_material_count': conductive_material_count,
         'conductive_material_range':  tuple(conductive_material_range),
-        'max_iterations': max_iterations,
         'convergence_tolerance': convergence_tolerance,
+        'max_iterations': max_iterations,
+        'save_states': save_states,
         'enable_fixed_charges': enable_fixed_charges,
         'fixed_voltage_range': (50, 200) if enable_fixed_charges else None
     }
 
     simulation_data = []
     for seed in range(min_seed, max_seed + 1):
-        result_dict = run_electrostatic_simulation(simulation_config, seed=seed, images_only=images_only, save_states=save_states)
+        result_dict = run_electrostatic_simulation(simulation_config, seed=seed, images_only=images_only)
         simulation_data.append(result_dict)
         #logger.debug("Simulation Result:\n%s", pprint.pformat(result_dict))
     return simulation_data

@@ -1,7 +1,18 @@
 from setup_logger import setup_logger, set_logger_level
 logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
 from arguments import process_args
-from utilities import glob, path, DATATYPE_NAME, DEFAULT_DATAFILE_EXT, SIMVP_DATAFILE_EXT, current_process, create_folder, read_from_hdf5, read_from_json, save_to_json, normalize_hdf5_to_hdf5, normalize_hdf5_to_numpy
+from utilities import (glob, 
+                        path, 
+                        DATATYPE_NAME,
+                        DEFAULT_DATAFILE_EXT, 
+                        SIMVP_DATAFILE_EXT, 
+                        create_folder, 
+                        read_from_hdf5, 
+                        read_from_json, 
+                        save_to_json, 
+                        normalize_hdf5_to_hdf5, 
+                        normalize_hdf5_to_numpy,
+                        extract_minmax_tuples)
 from plot_samples import plot_simulation_samples
 
 
@@ -26,30 +37,31 @@ def main():
 
     create_folder(output_folder_path)
 
-    global_extrema_file = None
-    global_extrema_values = None
+    global_statistics_file = None
+    global_statistics_values = None
     new_dataset_file_path = None
 
     # find the global extreme values file
-    global_extrema_file = f"{dataset_folder_path}/global_extrema_{DEFAULT_DATAFILE_EXT}_{dataset_file_name.replace('normalized_', '').replace(DEFAULT_DATAFILE_EXT, 'json')}"
-    extrema_file_paths = glob(global_extrema_file)
-    if len(extrema_file_paths) != 1:
-        raise FileNotFoundError(f"Cannot find global extrema json file in path: {global_extrema_file}")
-    global_extrema_file = extrema_file_paths[0]
-    global_extrema_values = read_from_json(extrema_file_paths[0])
-    global_extrema_postfix = dataset_file_name.replace(DEFAULT_DATAFILE_EXT, 'json')
+    global_statistics_file = f"{dataset_folder_path}/global_statistics_{DEFAULT_DATAFILE_EXT}_{dataset_file_name.replace('normalized_', '').replace(DEFAULT_DATAFILE_EXT, 'json')}"
+    statistics_file_paths = glob(global_statistics_file)
+    if len(statistics_file_paths) != 1:
+        raise FileNotFoundError(f"Cannot find global statistics json file in path: {global_statistics_file}")
+    global_statistics_file = statistics_file_paths[0]
+    global_statistics_values = read_from_json(statistics_file_paths[0])
+    global_statistics_postfix = dataset_file_name.replace(DEFAULT_DATAFILE_EXT, 'json')
 
+ 
     if simvp_format:
         # save to simvp formatted numpy files
-        channels_minmax_values = normalize_hdf5_to_numpy(dataset_file_path, global_extrema_values, output_folder_path, DATATYPE_NAME, normalize=normalize)
-        new_global_extrema_file = f"global_extrema_{SIMVP_DATAFILE_EXT}_{global_extrema_postfix}"
-        save_to_json(path.join(output_folder_path, new_global_extrema_file), channels_minmax_values)
+        channel_statistics = normalize_hdf5_to_numpy(dataset_file_path, global_statistics_values, output_folder_path, DATATYPE_NAME, normalize=normalize)
+        new_global_statistics_file = f"global_statistics_{SIMVP_DATAFILE_EXT}_{global_statistics_postfix}"
+        save_to_json(path.join(output_folder_path, new_global_statistics_file), channel_statistics)
     elif normalize:
         # save normalized copy to hdf5 file
         new_dataset_file_path = path.join(output_folder_path, f"normalized_{dataset_file_name}")
-        normalize_hdf5_to_hdf5(dataset_file_path, new_dataset_file_path, global_extrema_values)
+        normalize_hdf5_to_hdf5(dataset_file_path, new_dataset_file_path, global_statistics_values)
         if output_folder_path != dataset_folder_path:
-            save_to_json(path.join(output_folder_path, path.basename(global_extrema_file)), global_extrema_values)
+            save_to_json(path.join(output_folder_path, path.basename(global_statistics_file)), global_statistics_values)
     elif 'normalized' in dataset_file_name:
         new_dataset_file_path = dataset_file_path
 
@@ -59,15 +71,15 @@ def main():
 
     if new_dataset_file_path:
         plot_dataset_file = new_dataset_file_path
-        global_extrema_values = {key: [0.0, 1.0] for key in global_extrema_values['image'].keys()}
+        global_minmax_tuples = {key: [0.0, 1.0] for key in global_statistics_values['image'].keys()}
     else:
         plot_dataset_file = dataset_file_path
-        global_extrema_values = global_extrema_values['image']
+        global_minmax_tuples = extract_minmax_tuples(global_statistics_values)
 
     plot_prefix = "_".join(path.basename(plot_dataset_file).split('_')[:-1])
     plot_path = create_folder(path.join(output_folder_path, "plots"))
     sample_dicts = read_from_hdf5(plot_dataset_file, sample_size=sample_plots)
-    plot_simulation_samples(sample_dicts, plot_path, plot_prefix, global_extrema_values, plot_states=plot_states)
+    plot_simulation_samples(sample_dicts, plot_path, plot_prefix, global_minmax_tuples, plot_states=plot_states)
 
 
 

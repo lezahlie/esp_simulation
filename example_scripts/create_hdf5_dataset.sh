@@ -12,4 +12,5 @@ python $root_path/create_dataset.py \
 --image-size=32 \
 --conductive-cell-prob=0.5 \
 --conductive-material-range=1,10 \
---max-iterations=2000
+--max-iterations=2000 \
+--save-states="first-10,interval-100"

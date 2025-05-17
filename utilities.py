@@ -17,10 +17,48 @@ import numpy as np
 import hashlib
 from collections import deque, namedtuple
 from glob import glob
+from pprint import pprint
 
 DEFAULT_DATAFILE_EXT = "hdf5"
 SIMVP_DATAFILE_EXT = 'npy'
 DATATYPE_NAME = "electrostatic"
+
+def create_save_states_predicate(conditions):
+    # Handle 'all'
+    if 'all' in conditions:
+        return lambda i: True
+
+    # Start with a condition that is always False (base condition)
+    combined_predicate = lambda i: False
+
+    for condition in conditions:
+        
+        # Handle 'first-N'
+        if isinstance(condition, tuple) and condition[0] == 'first':
+            n = condition[1]
+            # Combine with OR: (1 <= i <= n) or the existing combined_predicate
+            combined_predicate = lambda i, combined_predicate=combined_predicate, n=n: (1 <= i <= n) or combined_predicate(i)
+
+        # Handle 'interval-T'
+        elif isinstance(condition, tuple) and condition[0] == 'interval':
+            t = condition[1]
+            # Combine with OR: (i % t == 0) or the existing combined_predicate
+            combined_predicate = lambda i, combined_predicate=combined_predicate, t=t: (i % t == 0) or combined_predicate(i)
+
+        # Handle 'base-N'
+        elif isinstance(condition, tuple) and condition[0] == 'base':
+            b = condition[1]
+            def is_power(i, num):
+                if i < 1:
+                    return False
+                while i % num == 0:
+                    i //= num
+                return i == 1
+            # Combine with OR: is_power(i, b) or the existing combined_predicate
+            combined_predicate = lambda i, combined_predicate=combined_predicate, b=b, is_power=is_power: is_power(i, b) or combined_predicate(i)
+
+    return combined_predicate
+
 
 def dynamic_precision_round(value):
     factor = 10 ** 2
@@ -106,52 +144,104 @@ def flatten_dict(d, parent_key='', sep='_'):
 
 
 # shared dictionary between processes
-def update_shared_data(min_max_dict, shared_data, shared_lock):
+def update_shared_data(new_data, shared_data, shared_lock):
     with shared_lock:
         shared_data_copy = shared_data.copy()
 
     for category in ['image', 'metric']:
-        if category not in min_max_dict:
+        if category not in new_data:
             continue
         if category not in shared_data_copy:
             shared_data_copy[category] = {}
-        for key, (local_min, local_max) in min_max_dict[category].items():
+
+        for key, new_stats in new_data[category].items():
             if key not in shared_data_copy[category]:
-                shared_data_copy[category][key] = [local_min, local_max]
+                shared_data_copy[category][key] = new_stats
             else:
-                original_min, original_max = shared_data_copy[category][key]
-                new_min = min(original_min, local_min)
-                new_max = max(original_max, local_max)
-                shared_data_copy[category][key][0] = new_min
-                shared_data_copy[category][key][1] = new_max
+                original_stats = shared_data_copy[category][key]
+
+                # Calculate new min and max
+                new_min = min(original_stats['min'], new_stats["min"])
+                new_max = max(original_stats['max'], new_stats["max"])
+
+                # Calculate the new count (total number of elements)
+                new_count = original_stats['count'] + new_stats["count"]
+
+                # Calculate the pooled mean
+                new_mean = (original_stats["count"] * original_stats["mean"] + new_stats["count"] * new_stats["mean"]) / new_count
+
+                # Calculate the pooled variance
+                pooled_variance = (
+                    (original_stats["count"] - 1) * original_stats["std"] ** 2 +
+                    (new_stats["count"] - 1) * new_stats["std"] ** 2 +
+                    (original_stats["count"] * new_stats["count"]) / (new_count) * (original_stats["mean"] - new_stats["mean"]) ** 2
+                ) / (new_count - 1)
+
+                # Calculate the pooled standard deviation
+                new_std = np.sqrt(pooled_variance)
+
+                new_shape = [original_stats['shape'][0] + new_stats['shape'][0]] + original_stats['shape'][1:]
+
+                # Update the shared data dictionary with pooled values
+                shared_data_copy[category][key] = {
+                    'min': new_min,
+                    'max': new_max,
+                    'mean': new_mean,
+                    'std': new_std,
+                    'count': new_count,
+                    'shape': new_shape
+                }
 
     with shared_lock:
         shared_data.update(shared_data_copy)
 
-
-# computing the local min_max for each result for current
-def compute_min_max_results(sim_results_list):
-    min_max_dict = {}
-    data_groups = ['image', 'metric']
+def compute_local_stats(sim_results_list):
+    stats_dict = {}
+    data_groups = ['image', 'metric']  # Track image and metric data
 
     for sim_results in sim_results_list:
         for group in data_groups:
             if group not in sim_results:
                 continue
 
-            if group not in min_max_dict:
-                min_max_dict[group] = {}
-            
+            if group not in stats_dict:
+                stats_dict[group] = {}
+
             for key, value in sim_results[group].items():
                 data = np.array(value)
-                if key not in min_max_dict[group]:
-                    min_max_dict[group][key] = [np.min(data), np.max(data)]
-                else:
-                    min_max_dict[group][key][0] = min(min_max_dict[group][key][0], np.min(data))
-                    min_max_dict[group][key][1] = max(min_max_dict[group][key][1], np.max(data))
-    
-    return min_max_dict
+                local_min = np.min(data)
+                local_max = np.max(data)
+                local_mean = np.mean(data)
+                local_std = np.std(data)
+                local_size = data.size 
+                local_shape = list(data.shape) if group == "image" else [1]
 
+                if key not in stats_dict[group]:
+                    stats_dict[group][key] = {
+                        'min': local_min,
+                        'max': local_max,
+                        'mean': local_mean,
+                        'std': local_std,
+                        'count': local_size,
+                        'shape': [1] + local_shape
+                    }
+                else:
+                    stats_dict[group][key]['min'] = min(stats_dict[group][key]['min'], local_min)
+                    stats_dict[group][key]['max'] = max(stats_dict[group][key]['max'], local_max)
+                    stats_dict[group][key]['mean'] = local_mean
+                    stats_dict[group][key]['std'] = local_std
+                    stats_dict[group][key]['count'] += local_size
+                    stats_dict[group][key]['shape'][0] += 1
+
+    return stats_dict
+
+def extract_minmax_tuples(global_stats):
+    min_max_dict = {}
+    for category, values in global_stats.items():
+        min_max_dict[category] = {}
+        for key, stats in values.items():
+            min_max_dict[category][key] = (stats["min"], stats["max"])
+    return min_max_dict
 
 # helper to min max normalize 1 or 2 dim data
 def normalize(data, data_minmax:tuple[float,float], scaler_range:tuple[float,float]=(0.0, 1.0), inverse=False):
@@ -424,11 +514,10 @@ def combine_hdf5_files(input_file_paths, output_file_path, chunk_size=None):
 
     
 # normalizes existing HDF5 data to a new hdf5 data file
-def normalize_hdf5_to_hdf5(input_file_path: str, output_file_path: str, 
-                            minmax_values: dict[str, dict[str, tuple[float, float]]], 
+def normalize_hdf5_to_hdf5(input_file_path: str, output_file_path: str, stats_values_dict: dict | None,   
                             chunk_size: int | None = None, scaler_range=(0.0, 1.0), inverse=False):
-    
     try:
+        minmax_values = extract_minmax_tuples(stats_values_dict)
         with h5py.File(input_file_path, 'r') as src_file, h5py.File(output_file_path, 'w') as dst_file:
             for chunk in _get_record_chunk(src_file, chunk_size or 1):
                 for record_name, record in chunk:
@@ -482,14 +571,14 @@ def _process_image_stack(group, keys, minmax_values, normalize, scaler_range, in
 
 
 # normalizes hdf5 data and writes to numpy files formatted for SimVP
-def normalize_hdf5_to_numpy(input_file_path: str, minmax_values_dict: dict[str, tuple[float, float]] | None,  
+def normalize_hdf5_to_numpy(input_file_path: str, stats_values_dict: dict | None,  
                             data_path: str, datatype: str, normalize: bool = True, chunk_size: int|None = None,  
                             inverse: bool = False, scaler_range: tuple[float, float] = (0.0, 1.0)):
 
-
+    minmax_values_dict = extract_minmax_tuples(stats_values_dict)
     subgroup = 'image'
     minmax_values = minmax_values_dict[subgroup]
-    input_keys = ["initial_potential_map", "permittivity_map", "charge_distribution"]
+    input_keys = ["initial_potential_map", "charge_distribution", "permittivity_map"]
     output_keys = ["final_potential_map"]
     sim_idx = 0
 
@@ -518,12 +607,19 @@ def normalize_hdf5_to_numpy(input_file_path: str, minmax_values_dict: dict[str, 
                     save_to_numpy((input_images_stacked, output_images_stacked), data_path, datatype, sim_idx)
                     sim_idx += 1
 
-        channel_minmax = {
-            'input_channels': [val for key, val in minmax_values.items() if key in input_keys],
-            'output_channels': [val for key, val in minmax_values.items() if key in output_keys]
+
+        channel_stats = {
+            'input_channels': {
+                i: {'name': key, **{k: v for k, v in stats_values_dict['image'][key].items() if k not in ['count', 'shape']}}
+                for i, key in enumerate(input_keys)
+            },
+            'output_channels': {
+                i: {'name': key, **{k: v for k, v in stats_values_dict['image'][key].items() if k not in ['count', 'shape']}}
+                for i, key in enumerate(output_keys)
+            }
         }
-        
-        return channel_minmax
+
+        return channel_stats
 
     except (OSError, IOError, TypeError) as e:
         logger.error(f"Cannot normalize data from HDF5 file and save to NumPy files due to: {e}", stacklevel=2)

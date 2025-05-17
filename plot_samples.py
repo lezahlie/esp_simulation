@@ -103,7 +103,7 @@ def plot_sample_images(map_list, plot_title, plot_path, nrows = 1):
     plt.close()
 
 
-def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:str, global_extrema_values:dict|None=None, plot_states:bool=False):
+def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:str, global_statistics_values:dict|None=None, plot_states:bool=False):
     for sample in sample_dicts:
         permittivity_titles = f"{PERMITTIVITY_TYPE.title()} Permittivity", "Permittivity"
         if PERMITTIVITY_TYPE == 'absolute':
@@ -111,12 +111,12 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
             permittivity_titles[1]+=" (F/m)"
 
         MapConfig = namedtuple("MapConfig", ["array", "title", "cbar_label", "cmap_name", "extrema_values", "discrete", "tick_labels"])
-        extrema_values = global_extrema_values if global_extrema_values is not None else {}
+        extrema_values = global_statistics_values if global_statistics_values is not None else {}
         input_minmax = extrema_values.get('initial_potential_map', None)
-        output_minmax = extrema_values.get('final_potential_map', None)
+        output_minmax = extrema_values.get('final_potential_map', None) 
         perm_minmax = extrema_values.get('permittivity_map', None)
         charge_minmax = extrema_values.get('charge_distribution', None)
-
+        
         map_list = [
                 MapConfig(sample['image_permittivity_map'], f"{permittivity_titles[0]}", 
                         permittivity_titles[1], 'plasma', perm_minmax, False, None),
@@ -140,17 +140,20 @@ def plot_simulation_samples(sample_dicts:list[dict], plot_path:str, plot_prefix:
         logger.info(f"Saved sample images plot for seed {random_seed} to: {plot_file}")
         
         if plot_states:
+            count, limit = 0, 34
             new_plot_file =  plot_file.replace(".png", "_states.png")
             potential_states = {0: sample['image_initial_potential_map']}
             for key, val in sample.items():
                 if key.startswith("image_potential_state_"):
                     iteration = int(key.split("_")[-1])
                     potential_states[iteration] = val
-
+                    count+=1
+                    if count == limit:
+                        break
             potential_states[total_iterations] = sample['image_final_potential_map']
             plot_potential_states(potential_states, new_plot_file, random_seed)
             logger.info(f"Saved sample states plot for seed {random_seed} to: {new_plot_file}")
-
+        
 
 def plot_potential_states(potential_states, plot_path, seed_num, normalized=False):
     states = potential_states
@@ -178,8 +181,8 @@ def plot_potential_states(potential_states, plot_path, seed_num, normalized=Fals
     num_states = len(sorted_states)
 
 
-    if num_states > 6:
-        ncols = 7 
+    if num_states > 5:
+        ncols = 6 
         nrows = (num_states + ncols - 1) // ncols
         
     else:

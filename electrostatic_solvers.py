@@ -1,26 +1,22 @@
 from setup_logger import setup_logger
 logger = setup_logger(__file__, log_stdout=True, log_stderr=True)
-from utilities import np, ndimg 
-from electrostatic_mappers import epsilon_0, generate_initial_potential_map, neumann_boundary_conditions, dirichlet_boundary_conditions
+from utilities import np, ndimg
+from electrostatic_mappers import generate_initial_potential_map, neumann_boundary_conditions, dirichlet_boundary_conditions
 
 # Poisson's equation using the Gauss–Seidel method
 # https://en.wikipedia.org/wiki/Discrete_Poisson_equation
 # https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method
 def solve_poisson_equation(potential_map, charge_distribution, permittivity_map, 
-                        max_iterations=1000, convergence_tolerance=1e-6, save_states=False):
+                        max_iterations=1000, convergence_tolerance=1e-6, save_states_predicate=lambda i: False):
     iteration = 0
     converged = False
     inverse_permittivity_map = np.where(permittivity_map != 0, 1.0 / permittivity_map, 0.0)
     potential_states = {}
 
-
-    save_states_condition = (lambda i: ((0 < i < 21) or ((i & (i - 1)) == 0))) if save_states else False
-
-
     while not converged and iteration < max_iterations:
         max_delta = 0.0
 
-        if save_states_condition(iteration):
+        if save_states_predicate(iteration):
             potential_states[f'potential_state_{iteration}'] = potential_map.copy()
 
         for i in range(1, charge_distribution.shape[0] - 1):
@@ -44,17 +40,15 @@ def solve_poisson_equation(potential_map, charge_distribution, permittivity_map,
 # Follows Laplace's equation using the Gauss–Seidel method
 # https://en.wikipedia.org/wiki/Laplace%27s_equation
 # https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method
-def solve_laplace_equation(potential_map, max_iterations=1000, convergence_tolerance=1e-6, save_states=False):
+def solve_laplace_equation(potential_map, max_iterations=1000, convergence_tolerance=1e-6, save_states_predicate=lambda i: False):
     iteration = 0
     converged = False
     potential_states = {}
 
-    save_states_condition = (lambda i: ((0 < i < 21) or ((i & (i - 1)) == 0))) if save_states else False
-
     while not converged and iteration < max_iterations:
         max_delta = 0.0 
 
-        if save_states_condition(iteration):
+        if save_states_predicate(iteration):
             potential_states[f'potential_state_{iteration}'] = potential_map.copy()
     
         for i in range(1, potential_map.shape[0] - 1):
@@ -125,11 +119,10 @@ def generate_free_charge_distribution(conductive_material_mask, permittivity_map
     return free_charge_distribution
 
 
-def compute_electrostatic_potential(conductive_material_mask, permittivity_map, max_iterations, tolerance_value, voltage_range: tuple[int, int] = None, save_states:bool=False):
+def compute_electrostatic_potential(conductive_material_mask, permittivity_map, max_iterations, tolerance_value, voltage_range: tuple[int, int] = None, save_states_predicate = lambda i: False):
 
     input_potential_map = generate_initial_potential_map(conductive_material_mask, voltage_range)
     initial_potential = input_potential_map.copy()
-
 
     if voltage_range is None:
         charge_distribution = generate_free_charge_distribution(conductive_material_mask, permittivity_map)
@@ -139,13 +132,13 @@ def compute_electrostatic_potential(conductive_material_mask, permittivity_map, 
                                                                                                                     permittivity_map, 
                                                                                                                     max_iterations=max_iterations, 
                                                                                                                     convergence_tolerance=tolerance_value,
-                                                                                                                    save_states=save_states) 
+                                                                                                                    save_states_predicate=save_states_predicate) 
 
     else:
         final_potential, potential_states, (max_delta, completed, total_iterations) = solve_laplace_equation(input_potential_map,
                                                                                                                     max_iterations=max_iterations, 
                                                                                                                     convergence_tolerance=tolerance_value,
-                                                                                                                    save_states=save_states)
+                                                                                                                    save_states_predicate=save_states_predicate)
         charge_distribution = laplacian_operator_charge_distribution(final_potential, permittivity_map)
 
     solver_images= {
@@ -154,7 +147,7 @@ def compute_electrostatic_potential(conductive_material_mask, permittivity_map, 
         "final_potential_map": final_potential
     }
 
-    if save_states and potential_states:
+    if potential_states:
         solver_images.update(potential_states)
 
     solver_meta = {

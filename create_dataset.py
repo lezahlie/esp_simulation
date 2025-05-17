@@ -40,9 +40,10 @@ def process_image_maps(data_file,
         save_to_hdf5(sim_results, data_file, seed_step)
 
         # update the global min and max for all scalers and images
-        local_min_max = compute_min_max_results(sim_results)
-        update_shared_data(local_min_max, shared_data, shared_lock)
-
+        local_stats = compute_local_stats(sim_results)
+        print(local_stats)
+        update_shared_data(local_stats, shared_data, shared_lock)
+        print(local_stats)
 
 # combines all results files into one big file
 def gather_task_results(task_data_paths, final_file, seed_chunk):
@@ -93,7 +94,7 @@ def main():
     enable_fixed_charges = args.enable_fixed_charges
     enable_absolute_permittivity = args.enable_absolute_permittivity
     save_states = args.save_states
-    
+
     conductive_cell_ratio = getattr(args, 'conductive_cell_ratio', None)
     conductive_cell_prob = getattr(args, 'conductive_cell_prob', None)
     conductive_material_count = getattr(args, 'conductive_material_count', None)
@@ -132,7 +133,7 @@ def main():
                     save_states
                 ]
     
-    global_min_max = run_processes(task_data_paths, seed_range_per_task, default_args)
+    global_stats = run_processes(task_data_paths, seed_range_per_task, default_args)
 
     # combine process results
     if req_cores > 1:
@@ -141,9 +142,10 @@ def main():
     else:
         final_file_path = task_data_paths[0]
 
-    global_minmax_file_name = path.basename(final_file_path).split('.')[0]
-    global_minmax_file_path = f"global_extrema_{DEFAULT_DATAFILE_EXT}_{global_minmax_file_name}.json"
-    save_to_json(path.join(output_folder_path, global_minmax_file_path), global_min_max)
+    
+    global_stats_file_name = path.basename(final_file_path).split('.')[0]
+    global_stats_file_path = f"global_statistics_{DEFAULT_DATAFILE_EXT}_{global_stats_file_name}.json"
+    save_to_json(path.join(output_folder_path, global_stats_file_path), global_stats)
 
 
 if __name__ == "__main__":

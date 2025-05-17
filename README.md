@@ -16,15 +16,21 @@ conda activate esp_env
 ### File: `create_dataset.py`
 
 ```bash
-usage: create_dataset.py [-h] [-d] [--ntasks NUM_TASKS] [--seed-step SEED_STEP]
-     [--image-size IMAGE_SIZE] [--min-seed MIN_SEED]
-     [--max-seed MAX_SEED]
-     (--conductive-cell-ratio CONDUCTIVE_CELL_RATIO | --conductive-cell-prob CONDUCTIVE_CELL_RATIO)
-     (--conductive-material-range CONDUCTIVE_MATERIAL_RANGE | --conductive-material-count CONDUCTIVE_MATERIAL_COUNT)
-     [--enable-absolute-permittivity] [--enable-fixed-charges]
-     [--max-iterations MAX_ITERATIONS]
-     [--convergence-tolerance CONVERGENCE_TOLERANCE] [--save-states]
-     [--output-path OUTPUT_PATH] [--output-folder OUTPUT_FOLDER]
+usage: create_dataset.py [-h] [-d] 
+    [--ntasks NUM_TASKS] 
+    [--seed-step SEED_STEP]
+    [--image-size IMAGE_SIZE] 
+    [--min-seed MIN_SEED]
+    [--max-seed MAX_SEED]
+    (--conductive-cell-ratio CONDUCTIVE_CELL_RATIO | --conductive-cell-prob CONDUCTIVE_CELL_RATIO)
+    (--conductive-material-range CONDUCTIVE_MATERIAL_RANGE | --conductive-material-count CONDUCTIVE_MATERIAL_COUNT)
+    [--enable-absolute-permittivity] 
+    [--enable-fixed-charges]
+    [--max-iterations MAX_ITERATIONS]
+    [--convergence-tolerance CONVERGENCE_TOLERANCE]
+    [--output-path OUTPUT_PATH] 
+    [--output-folder OUTPUT_FOLDER]
+    [--save-states SAVE_STATES]
 
 Electro Static Potential Simulation
 
@@ -63,8 +69,15 @@ image generation options:
     Maximum allowed iterations to run electrostatic potential solvers | default: 3000
   --convergence-tolerance CONVERGENCE_TOLERANCE
     Convergence threshold, simulation stops when the max delta between states falls below this value (default: 1e-6)
-  --save-states         
-    Enables saving states, where iteration is a power of two | default:false
+  --save-states SAVE_STATES 
+    When to save intermediate states:
+      "all"            - every iteration
+      "interval-<T>"   - every Nth iteration; e.g. interval-10
+      "first-<N>"      - first N states; e.g. first-10
+      "base-<B>"       - powers of B: 1, B, B², ...; base-2
+      "all"            - every iteration
+      "none"           - no intermediate states are saved
+    Multiple options can be chained, e.g. "first-<T>,interval-<N>,base-<B>"
 
 output path options:
   --output-path OUTPUT_PATH
@@ -293,7 +306,7 @@ python process_dataset.py \
   - Files:
     - `0.npy`: Input (3-channel): `initial_potential_map`, `permittivity_map`, `charge_distribution`
     - `1.npy`: Output (1-channel): `final_potential_map`
-- Global extrema saved to: `global_extrema_npy_<original_datafile>.json`
+- Global statistics is saved per channel to: `global_statistics_npy_<original_datafile>.json`
 
 ---
 
@@ -307,8 +320,8 @@ python process_dataset.py \
 ### Normalization
 - Only `image` arrays and `metric` scaler are normalized
   - `mask` arrays are considered categorical
-- Global extrema is saved to: `global_extrema_hdf5_<original_datafile>.json`
-  - This can be used for min-max scaling in another program
+- Global statistics is saved to: `global_statistics_hdf5_<original_datafile>.json`
+  - This can be used for data scaling in another program
 
 ---
 

@@ -13,6 +13,56 @@ executable_groups = {
 def parse_tuple(value):
     return tuple(map(int, value.strip("()").split(",")))
 
+def parse_save_states(s: str | None):
+    if not isinstance(s, str):
+        return None
+
+    s = s.strip().lower()
+
+    # If no save states are required
+    if s == 'none':
+        return []
+
+    conditions = []
+    # Split the input by commas to handle multiple chained conditions
+    for condition in s.split(','):
+        condition = condition.strip()
+
+        # Check for 'all'
+        if 'all' == condition:
+            conditions.append('all')
+
+        # Check for 'interval-T'
+        m = util.re.match(r'interval-(\d+)', condition)
+        if m:
+            t = int(m.group(1))
+            if t < 1:
+                raise ap.ArgumentTypeError("interval-<T> must be > 0")
+            conditions.append(('interval', t))
+
+        # Check for 'first-N'
+        m = util.re.match(r'first-(\d+)', condition)
+        if m:
+            n = int(m.group(1))
+            if n < 1:
+                raise ap.ArgumentTypeError("first-<N> must be > 0")
+            conditions.append(('first', n))
+
+        # Check for 'base-B'
+        m = util.re.match(r'base-(\d+)', condition)
+        if m:
+            b = int(m.group(1))
+            if b < 2:
+                raise ap.ArgumentTypeError("base-<B> must be > 1")
+            conditions.append(('base', b))
+
+    if not conditions:
+        raise ap.ArgumentTypeError(
+            f"invalid save-states '{s}'; choose none|all|first-<N>|interval-<N>|base-<N>"
+        )
+
+    return conditions
+
 
 def add_multiprocess_group(parser, file_name):
     group = parser.add_argument_group('multi-process options')
@@ -57,8 +107,20 @@ def add_simulation_group(parser):
                     help="Maximum allowed iterations to run electrostatic potential solvers | default: 3000")
     group.add_argument('--convergence-tolerance', dest='convergence_tolerance', type=float, default=1e-6,
                     help="Convergence threshold, simulation stops when the max delta between states falls below this value (default: 1e-6)")
-    group.add_argument('--save-states', dest='save_states', action='store_true',
-                help="Enables saving states, where iteration is a power of two | default: false")
+    group.add_argument('--save-states', dest='save_states',
+        type=parse_save_states,
+        default=None,
+            help=(
+                "When to save intermediate states:\n"
+                "   all            - every iteration\n"
+                "   interval-<T>   - every Nth iteration; e.g. interval-10\n"
+                "   first-<N>      - first N states; e.g. first-10\n"
+                "   base-<B>       - powers of B: 1, B, B², ...; base-2\n"
+                "   all            - every iteration\n"
+                "   none           - no intermediate states are saved\n"
+                'Multiple options can be chained, e.g. "first-<T>,interval-<N>,base-<B>"'
+            )
+    )
 
 
 def check_simulation_args(args):
@@ -164,7 +226,7 @@ def check_args(parser, file_name):
 
 def process_args(exe_file):
     file_name = util.path.basename(exe_file)
-    parser = ap.ArgumentParser(description="Electro Static Potential Simulation")
+    parser = ap.ArgumentParser(description="Electro Static Potential Simulation", formatter_class=ap.RawTextHelpFormatter)
     parser.add_argument('-d', '--debug', dest='debug_on', action='store_true', 
                         help="Enables logging with debug level verbosity | default: false")
 
