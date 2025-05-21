@@ -41,9 +41,7 @@ def process_image_maps(data_file,
 
         # update the global min and max for all scalers and images
         local_stats = compute_local_stats(sim_results)
-        print(local_stats)
         update_shared_data(local_stats, shared_data, shared_lock)
-        print(local_stats)
 
 # combines all results files into one big file
 def gather_task_results(task_data_paths, final_file, seed_chunk):
