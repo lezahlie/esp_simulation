@@ -404,7 +404,7 @@ python process_dataset.py \
 ### Default Solver: [Poisson’s Equation](https://en.wikipedia.org/wiki/Poisson%27s_equation)
 
 - Models *free charges*, where current flows between materials  
-  - Produces low variability across uniquely seeded runs
+  - Produces high variability across uniquely seeded runs
 - Applies [Dirichlet boundary conditions](https://en.wikipedia.org/wiki/Dirichlet_boundary_condition)
 - Solved in-place using the [Gauss–Seidel iterative method](https://en.wikipedia.org/wiki/Gauss%E2%80%93Seidel_method)
 - Charge distribution $\rho$ is derived from a synthetic energy field  
