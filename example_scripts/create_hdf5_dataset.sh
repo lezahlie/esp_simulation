@@ -3,8 +3,12 @@
 script_path=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root_path=$(dirname "$script_path")
 
+mkdir -p "$root_path/datasets"
+
+
 python $root_path/create_dataset.py \
---output-folder="hdf5_dataset_example" \
+--output-path="$root_path/datasets" \
+--output-folder="electrostatic_poisson_1k" \
 --min-seed=1 \
 --max-seed=1000 \
 --seed-step=100 \

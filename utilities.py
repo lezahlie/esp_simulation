@@ -24,7 +24,10 @@ SIMVP_DATAFILE_EXT = 'npy'
 DATATYPE_NAME = "electrostatic"
 
 def create_save_states_predicate(conditions):
-    if 'all' in conditions:
+    if not isinstance(conditions, list):
+        return lambda i: False
+
+    if "all" in conditions:
         return lambda i: True
 
     combined_predicate = lambda i: False

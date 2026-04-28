@@ -14,13 +14,17 @@ def parse_tuple(value):
     return tuple(map(int, value.strip("()").split(",")))
 
 def parse_save_states(s: str | None):
-    if not isinstance(s, str):
-        return None
+    # If no save states are required
+    if s is None:
+        return []
 
-    s = s.strip().lower()
+    if not (s is None or isinstance(s, str)):
+        raise ap.ArgumentTypeError(f"save-states must be a string or omit for default='none', got '{s}' with type: {type(s).__name__}")
+    
+    s = str(s).strip().lower()
 
     # If no save states are required
-    if s == 'none':
+    if s in {"", "none"}:
         return []
 
     conditions = []
@@ -109,17 +113,17 @@ def add_simulation_group(parser):
                     help="Convergence threshold, simulation stops when the max delta between states falls below this value (default: 1e-6)")
     group.add_argument('--save-states', dest='save_states',
         type=parse_save_states,
-        default=None,
-            help=(
-                "When to save intermediate states:\n"
-                "   all            - every iteration\n"
-                "   interval-<T>   - every Nth iteration; e.g. interval-10\n"
-                "   first-<N>      - first N states; e.g. first-10\n"
-                "   base-<B>       - powers of B: 1, B, B², ...; base-2\n"
-                "   all            - every iteration\n"
-                "   none           - no intermediate states are saved\n"
-                'Multiple options can be chained, e.g. "first-<T>,interval-<N>,base-<B>"'
-            )
+        default=[],
+        help=(
+            "When to save intermediate states:\n"
+            "   all            - every iteration\n"
+            "   interval-<T>   - every Nth iteration; e.g. interval-10\n"
+            "   first-<N>      - first N states; e.g. first-10\n"
+            "   base-<B>       - powers of B: 1, B, B², ...; base-2\n"
+            "   all            - every iteration\n"
+            "   none           - no intermediate states are saved\n"
+            'Multiple options can be chained, e.g. "first-<T>,interval-<N>,base-<B>"'
+        )
     )
 
 

@@ -1,9 +1,15 @@
 # Electrostatic Potential (ESP) Simulation
 
+## Clone the repo and change directories
+
+```bash
+git clone https://github.com/lezahlie/esp_simulation.git
+cd esp_simulation
+```
+
 ## Create and activate Conda environment
 
 ```bash
-cd esp_simulation
 conda env create -f environment.yaml
 conda activate esp_env
 ```
@@ -88,36 +94,67 @@ output path options:
 
 ### Example 1: Create a dataset with Poisson's Solver (free charges)
 
-```bash
-python create_dataset.py \
-  --output-folder=hdf5_dataset_example \
-  --ntasks=1 \
-  --min-seed=1 \                 
-  --max-seed=1000 \ 
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=2000 \
-  --conductive-cell-prob=0.7 \ 
-  --conductive-material-range=1,10 
-```
-> Outputs: ./hdf5_dataset_example_1/electrostatic_poisson_32x32_1-1000.hdf5
+1. Create a dataset directory to save to
+
+  ```bash
+  mkdir -p datasets
+  ```
+
+2. Create a dataset of 1000 simulations
+  
+  ```bash
+  python create_dataset.py \
+    --output-path="datasets" \
+    --output-folder="electrostatic_poisson_1k" \
+    --min-seed=1 \
+    --max-seed=1000 \
+    --seed-step=100 \
+    --ntasks=2 \
+    --image-size=32 \
+    --max-iterations=2000 \
+    --convergence-tolerance=1e-4 \
+    --conductive-cell-prob=0.5 \
+    --conductive-material-range=1,10 \
+    --save-states="first-10,interval-100"
+  ```
+
+> Notes: 
+> - Outputs: "./datasets/electrostatic_dataset_1k/electrostatic_poisson_32x32_1-1000.hdf5"
+> - Replace `--output-path` to save to another existing directory 
+> - Omit `--save-states` OR set `--save-states="none"` to prevent saving intermediate timesteps
+> - Decrease `--ntasks=2` to `--ntasks=1` if you only have 2 available cores 
 
 ### Example 2: Create a dataset with Laplace's solver (fixed charges)
 
-```bash
-python create_dataset.py \
-  --output-folder=hdf5_dataset_example \
-  --ntasks=2 \
-  --min-seed=1 \                 
-  --max-seed=1000 \ 
-  --seed-step=100 \ 
-  --image-size=32 \ 
-  --max-iterations=3000 \
-  --conductive-cell-ratio=0.5 \ 
-  --conductive-material-count=5 \
-  --enable-fixed-charges
-```
-> Outputs: ./hdf5_dataset_example_2/electrostatic_laplace_32x32_1-1000.hdf5
+1. Create a dataset directory to save to
+
+  ```bash
+  mkdir -p datasets
+  ```
+
+2. Create a dataset of 1000 simulations
+
+  ```bash
+  python create_dataset.py \
+    --output-path="datasets" \
+    --output-folder="electrostatic_laplace_1k" \
+    --ntasks=2 \
+    --min-seed=1 \
+    --max-seed=1000 \
+    --seed-step=100 \
+    --image-size=32 \
+    --max-iterations=3000 \
+    --conductive-cell-ratio=0.5 \
+    --conductive-material-count=5 \
+    --save-states="first-10,interval-100" \
+    --enable-fixed-charges
+  ```
+
+> Notes: 
+> - Outputs: "./datasets/electrostatic_laplace_1k/electrostatic_laplace_32x32_1-1000.hdf5"
+> - Replace `--output-path` to save to another existing directory 
+> - Omit `--save-states` OR set `--save-states="none"` to prevent saving intermediate timesteps
+> - Decrease `--ntasks=2` to `--ntasks=1` if you only have 2 available cores 
 
 ## Normalize dataset, plot samples, or reformat for SimVP
 
@@ -157,38 +194,38 @@ output path options:
 
 ```bash
 python process_dataset.py \
-    --dataset-path="esp_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --output-folder=simvp_format_example \
+    --dataset-path="datasets/electrostatic_poisson_1k/electrostatic_poisson_32x32_1-1000.hdf5" \
+    --output-folder=simvp_electrostatic_poisson_1k \
     --normalize \
     --simvp-format
 ```
-> Outputs: ./simvp_dataset_1/[simvp formatted structures ...]
+> Outputs: ./simvp_electrostatic_poisson_1k/[simvp formatted structures ...]
 
 ### Example 2: Saved a normalized version of an existing HDF5 dataset
 
 ```bash
 python process_dataset.py \
-    --dataset-path="esp_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --normalize
+  --dataset-path="datasets/electrostatic_poisson_1k/electrostatic_poisson_32x32_1-1000.hdf5" \
+  --normalize
 ```
-> Outputs: ./esp_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5
+> Outputs: ./datasets/electrostatic_poisson_1k/normalized_electrostatic_poisson_32x32_1-1000.hdf5
 
 ### Example 3: Plot 25 samples from existing HDF5 datasets
 
 ```bash
 python process_dataset.py \
-    --dataset-path="esp_dataset_example/electrostatic_poisson_32x32_1-1000.hdf5" \
-    --sample-plots=25 
+  --dataset-path="datasets/electrostatic_poisson_1k/electrostatic_poisson_32x32_1-1000.hdf5" \
+  --sample-plots=25 
 ```
-> Outputs: ./esp_dataset_example/plots/[sample plot files ...]
+> Outputs: ./datasets/electrostatic_poisson_1k/plots/[sample plot files ...]
 > Plot files are saved as: `electrostatic_poisson_32x32_<seed>.png` 
 
 ```bash
 python process_dataset.py \
-    --dataset-path="esp_dataset_example/normalized_electrostatic_poisson_32x32_1-1000.hdf5" \
+    --dataset-path="electrostatic_poisson_1k/normalized_electrostatic_poisson_32x32_1-1000.hdf5" \
     --sample-plots=25 
 ```
-> Outputs: ./esp_dataset_example/plots/[normalized sample plot files ...]
+> Outputs: ./electrostatic_poisson_1k/plots/[normalized sample plot files ...]
 > Plot files are saved as: `normalized_electrostatic_poisson_32x32_<seed>.png` 
 
 
