@@ -94,13 +94,13 @@ output path options:
 
 ### Example 1: Create a dataset with Poisson's Solver (free charges)
 
-1. Create a dataset directory to save to
+- Create a dataset directory to save to
 
   ```bash
   mkdir -p datasets
   ```
 
-2. Create a dataset of 1000 simulations
+- Create a dataset of 1000 simulations
   
   ```bash
   python create_dataset.py \
@@ -118,21 +118,21 @@ output path options:
     --save-states="first-10,interval-100"
   ```
 
-> Notes: 
-> - Outputs: "./datasets/electrostatic_dataset_1k/electrostatic_poisson_32x32_1-1000.hdf5"
-> - Replace `--output-path` to save to another existing directory 
-> - Omit `--save-states` OR set `--save-states="none"` to prevent saving intermediate timesteps
-> - Decrease `--ntasks=2` to `--ntasks=1` if you only have 2 available cores 
+  > Notes: 
+  > - Outputs: "./datasets/electrostatic_dataset_1k/electrostatic_poisson_32x32_1-1000.hdf5"
+  > - Replace `--output-path` to save to another existing directory 
+  > - Omit `--save-states` OR set `--save-states="none"` to prevent saving intermediate timesteps
+  > - Decrease `--ntasks=2` to `--ntasks=1` if you only have 2 available cores 
 
 ### Example 2: Create a dataset with Laplace's solver (fixed charges)
 
-1. Create a dataset directory to save to
+- Create a dataset directory to save to
 
   ```bash
   mkdir -p datasets
   ```
 
-2. Create a dataset of 1000 simulations
+- Create a dataset of 1000 simulations
 
   ```bash
   python create_dataset.py \
@@ -150,11 +150,11 @@ output path options:
     --enable-fixed-charges
   ```
 
-> Notes: 
-> - Outputs: "./datasets/electrostatic_laplace_1k/electrostatic_laplace_32x32_1-1000.hdf5"
-> - Replace `--output-path` to save to another existing directory 
-> - Omit `--save-states` OR set `--save-states="none"` to prevent saving intermediate timesteps
-> - Decrease `--ntasks=2` to `--ntasks=1` if you only have 2 available cores 
+  > Notes: 
+  > - Outputs: "./datasets/electrostatic_laplace_1k/electrostatic_laplace_32x32_1-1000.hdf5"
+  > - Replace `--output-path` to save to another existing directory 
+  > - Omit `--save-states` OR set `--save-states="none"` to prevent saving intermediate timesteps
+  > - Decrease `--ntasks=2` to `--ntasks=1` if you only have 2 available cores 
 
 ## Normalize dataset, plot samples, or reformat for SimVP
 
